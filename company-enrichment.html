@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Company Profile Enrichment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with full-width flow, format grid and an input→output example; slim sticky header with EN/VI switch. Same family as the other case studies, ledger-plum accent. */
+:root{
+  --bg:#f3f3f6;          /* paper-catalog grey, indigo-biased */
+  --surface:#ffffff;
+  --ink:#1b1c2b;
+  --muted:#5a5c6e;
+  --line:#d9d9e3;
+  --accent:#7a3b6b;      /* ledger plum */
+  --accent-soft:#f3e6ef;
+  --amber:#b4610b;       /* LLM step */
+  --amber-soft:#f8ead9;
+  --good:#1f7a52;
+  --bad:#b3261e;
+  --bad-soft:#f9e3e1;
+  --code-bg:#ebebf1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+    --accent:#e09acb; --accent-soft:#3d2236; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --bad:#f2867c; --bad-soft:#3d1f1f; --code-bg:#23253a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+  --accent:#e09acb; --accent-soft:#3d2236; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --bad:#f2867c; --bad-soft:#3d1f1f; --code-bg:#23253a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.65;padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,3.6vw,2.15rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+.vi{display:none}
+body.lang-vi .en{display:none}
+body.lang-vi .vi{display:revert}
+span.vi,span.en{display:inline}
+body.lang-vi span.en{display:none}
+body:not(.lang-vi) span.vi{display:none}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-20px;padding:10px 20px}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.switch{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.switch button{font:500 .8rem var(--f-mono);background:transparent;color:var(--muted);border:0;padding:6px 14px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.switch button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.hero{padding-block:56px 40px;display:flex;flex-direction:column;gap:22px}
+.lede{font-size:1.2rem;color:var(--muted);max-width:60ch}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.meta div{background:var(--surface);padding:14px 16px;min-width:0}
+.meta dt{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.meta dd{margin:4px 0 0;font-weight:500;font-size:.95rem}
+
+section{padding-block:44px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:22px}
+.sec-head{display:flex;flex-direction:column;gap:8px}
+
+.flow{display:flex;flex-wrap:wrap;align-items:stretch}
+.step{flex:1 1 130px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.step .n{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.step b{font-family:var(--f-display);font-size:1.02rem}
+.step p{font-size:.86rem;color:var(--muted);line-height:1.5}
+.step.ai{background:var(--amber-soft);border-color:transparent}
+.step.store{background:var(--accent-soft);border-color:transparent}
+.arrow{flex:0 0 24px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--f-mono)}
+@media (max-width:760px){.flow{flex-direction:column}.arrow{flex-basis:22px;transform:rotate(90deg)}}
+.flow-label{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.flow-label i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.lane{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.formats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.fmt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fmt .ext{font-family:var(--f-mono);font-size:.78rem;color:var(--accent);letter-spacing:.04em}
+.fmt p{font-size:.88rem;color:var(--muted);line-height:1.5}
+
+.example{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.example{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel .tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.doc{font-family:var(--f-mono);font-size:.78rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre-wrap;overflow-x:auto;line-height:1.55}
+.json{font-family:var(--f-mono);font-size:.76rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre;overflow-x:auto;line-height:1.5}
+.json .k{color:var(--accent)}
+.json .r{color:var(--amber)}
+.json .c{color:var(--muted)}
+
+.gate{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.gate div{border-left:3px solid var(--accent);padding:4px 0 4px 14px;min-width:0}
+.gate b{display:block;font-size:.98rem}
+.gate span{font-size:.9rem;color:var(--muted)}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:600}
+.pill{font-family:var(--f-mono);font-size:.72rem;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pill.cloud{background:var(--accent-soft)}
+.pill.self{background:var(--amber-soft)}
+
+.layers{display:flex;flex-direction:column;gap:8px}
+.layer{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.layer b{font-size:.92rem}
+.layer span{font-size:.9rem;color:var(--muted)}
+@media (max-width:560px){.layer{grid-template-columns:1fr}}
+
+.scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.scale div{background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.scale b{font-family:var(--f-display);font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.scale span{font-size:.86rem;color:var(--muted)}
+.scale .good b{color:var(--good)}
+
+.qbar{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.qbar i{display:block;min-width:4px}
+.qbar .ok{background:var(--good)}
+.qbar .part{background:var(--amber)}
+.qbar .bad{background:var(--bad)}
+.qbar .unk{background:var(--muted)}
+.qbar .rej{background:var(--code-bg)}
+.qlegend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.86rem;color:var(--muted);margin-top:10px}
+.qlegend span{display:inline-flex;align-items:center;gap:6px}
+.qlegend i{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+td .catch{font-family:var(--f-mono);font-size:.76rem;color:var(--good)}
+.decisions{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.dec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 28px;padding-block:18px;border-bottom:1px solid var(--line)}
+.dec h3{font-size:1.02rem}
+.dec p{font-size:.95rem;color:var(--muted)}
+@media (max-width:640px){.dec{grid-template-columns:1fr}}
+
+ul.clean{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+.quote{font-family:var(--f-display);font-size:1.35rem;line-height:1.35;border-left:3px solid var(--amber);padding-left:18px;max-width:52ch}
+
+.datanote{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--surface);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.datanote .t{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.datanote dl{margin:0;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:6px 16px;font-size:.9rem}
+.datanote dt{font-weight:600}
+.datanote dd{margin:0;color:var(--muted)}
+@media (max-width:560px){.datanote dl{grid-template-columns:1fr}.datanote dd{margin-bottom:6px}}
+footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+.contact{display:flex;flex-wrap:wrap;gap:10px 20px;margin-bottom:14px}
+@media (prefers-reduced-motion:no-preference){.switch button{transition:background .15s,color .15s}}
+
+
+
+/* architecture figure */
+.arch{margin:22px 0 0;overflow-x:auto}
+.arch svg{display:block;width:100%;min-width:720px;height:auto}
+.arch .bx{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.arch .bx.ai{fill:var(--amber-soft);stroke:var(--amber)}
+.arch .bx.st{fill:var(--accent-soft);stroke:var(--accent)}
+.arch .bx.ex{fill:var(--surface);stroke:var(--muted);stroke-dasharray:4 3}
+.arch .lane{fill:none;stroke:var(--line);stroke-dasharray:6 5;stroke-width:1.2}
+.arch .t{font:600 13px var(--f-body);fill:var(--ink)}
+.arch .s{font:11px var(--f-body);fill:var(--muted)}
+.arch .lb{font:500 10.5px var(--f-mono);fill:var(--muted);letter-spacing:.06em}
+.arch .al{font:500 10.5px var(--f-mono);fill:var(--accent)}
+.arch .ar{fill:none;stroke:var(--muted);stroke-width:1.4}
+.arch .ar.hot{stroke:var(--accent)}
+.arch .ar.dash{stroke-dasharray:4 3}
+.arch .mk{fill:var(--muted)}
+.arch .mk.hot{fill:var(--accent)}
+.arch figcaption{font-size:.88rem;color:var(--muted);margin-top:10px;max-width:68ch}
+.arch-key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.84rem;color:var(--muted);margin-top:8px}
+.arch-key span{display:inline-flex;align-items:center;gap:6px}
+.arch-key i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./" style="color:inherit;text-decoration:none">← <span class="en">All case studies</span><span class="vi">Tất cả case study</span> · Tran Vinh Tuan</a>
+  <div class="switch" role="group" aria-label="Language">
+    <button type="button" id="btn-en" aria-pressed="true">EN</button>
+    <button type="button" id="btn-vi" aria-pressed="false">VI</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<div class="hero">
+  <span class="eyebrow"><span class="en">Web search + LLM extraction · company data</span><span class="vi">Tìm kiếm web + trích xuất bằng LLM · dữ liệu doanh nghiệp</span></span>
+  <h1><span class="en">Completing company profiles from the web, without guessing</span><span class="vi">Bổ sung hồ sơ doanh nghiệp từ web, không đoán mò</span></h1>
+  <p class="lede en">The problem: the platform held thousands of company records that had a name and a country but no way to reach anyone. I built a pipeline that finds each company's own public website, reads its contact and about pages, and fills in the missing business details only when it is confident it found the right company.</p>
+  <p class="lede vi">Bài toán: nền tảng có hàng nghìn hồ sơ doanh nghiệp chỉ có tên và quốc gia, không có cách nào liên hệ. Tôi xây một pipeline tìm website công khai của chính doanh nghiệp đó, đọc trang liên hệ và giới thiệu, rồi bổ sung thông tin doanh nghiệp còn thiếu, nhưng chỉ khi chắc chắn đã tìm đúng công ty.</p>
+  <dl class="meta">
+    <div><dt><span class="en">Role</span><span class="vi">Vai trò</span></dt><dd><span class="en">Designed and built end to end</span><span class="vi">Tự thiết kế và xây toàn bộ</span></dd></div>
+    <div><dt><span class="en">Context</span><span class="vi">Bối cảnh</span></dt><dd><span class="en">Company directory</span><span class="vi">Danh bạ doanh nghiệp</span></dd></div>
+    <div><dt><span class="en">Approach</span><span class="vi">Cách làm</span></dt><dd>Search → scrape → LLM</dd></div>
+    <div><dt><span class="en">Built</span><span class="vi">Thời gian</span></dt><dd><span class="en">Jul – Aug 2026</span><span class="vi">07 – 08/2026</span></dd></div>
+  </dl>
+</div>
+
+<aside class="datanote" aria-label="About this case study">
+  <span class="t"><span class="en">About this case study and its data</span><span class="vi">Về case study này và số liệu</span></span>
+  <dl>
+    <dt><span class="en">What this is</span><span class="vi">Đây là gì</span></dt><dd><span class="en">A personal portfolio piece describing a system I designed and built as an engineer. The company is not named on purpose; the page is my own description, not an official company document.</span><span class="vi">Tài liệu portfolio cá nhân, mô tả hệ thống tôi đã thiết kế và xây khi làm kỹ sư. Tên công ty được cố ý không nêu; đây là mô tả của riêng tôi, không phải tài liệu chính thức của công ty.</span></dd>
+    <dt><span class="en">What it collects</span><span class="vi">Thu thập gì</span></dt><dd><span class="en">Only business information that companies publish about themselves on their own public websites: company contact channels, website, description, founding year and size range.</span><span class="vi">Chỉ thông tin doanh nghiệp mà các công ty tự công bố trên website công khai của họ: kênh liên hệ của công ty, website, mô tả, năm thành lập và quy mô.</span></dd>
+    <dt><span class="en">Numbers</span><span class="vi">Số liệu</span></dt><dd><span class="en">Quality figures come from one 50-record test batch run in dry-run mode, then checked by hand against each company's own public website. No company, contact or result from that batch is shown; error cases are described by type only.</span><span class="vi">Số liệu chất lượng lấy từ một lô thử 50 hồ sơ chạy ở chế độ dry run, sau đó được tôi kiểm tra thủ công với website công khai của từng công ty. Không hiển thị công ty, thông tin liên hệ hay kết quả nào của lô đó; các ca sai chỉ được mô tả theo loại.</span></dd>
+    <dt><span class="en">Examples</span><span class="vi">Ví dụ</span></dt><dd><span class="en">The company in the worked example ("Delta Spice Trading") is fictional.</span><span class="vi">Công ty trong ví dụ ("Delta Spice Trading") là hư cấu.</span></dd>
+    <dt><span class="en">Not included</span><span class="vi">Không có trong trang</span></dt><dd><span class="en">Source code, prompts, credentials, server details, and any customer, supplier, buyer or employee data.</span><span class="vi">Mã nguồn, prompt, thông tin đăng nhập, thông tin server, và mọi dữ liệu về khách hàng, nhà cung cấp, người mua hay nhân viên.</span></dd>
+  </dl>
+</aside>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">The problem</span><span class="vi">Bài toán</span></span>
+    <h2><span class="en">A name and a country are not enough to do business</span><span class="vi">Tên và quốc gia thì chưa đủ để làm ăn</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">Many supplier and buyer records arrived from trade data with only a company name and a country. The sales team could not contact them, and their profile pages looked empty. Looking each company up by hand took several minutes per record.</p>
+    <p class="vi">Nhiều hồ sơ nhà cung cấp và người mua đến từ dữ liệu thương mại, chỉ có tên công ty và quốc gia. Đội sales không liên hệ được, còn trang hồ sơ của họ trên nền tảng trông trống trơn. Tra cứu thủ công mất vài phút cho mỗi hồ sơ.</p>
+    <p class="en">The hard part is not finding a website. It is being sure the website belongs to <em>this</em> company. "Golden Rice Co." in Vietnam and "Golden Rice Co." in India are different businesses, and writing the wrong phone number into a record is worse than leaving it empty.</p>
+    <p class="vi">Phần khó không nằm ở việc tìm một website. Phần khó là chắc chắn website đó thuộc về <em>đúng</em> công ty này. "Golden Rice Co." ở Việt Nam và "Golden Rice Co." ở Ấn Độ là hai doanh nghiệp khác nhau, và ghi nhầm số điện thoại vào hồ sơ còn tệ hơn để trống.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">The flow</span><span class="vi">Luồng xử lý</span></span>
+    <h2><span class="en">Search, read, decide, then write only what is missing</span><span class="vi">Tìm, đọc, quyết định, rồi chỉ ghi phần còn thiếu</span></h2>
+  </div>
+  <div class="flow-label">
+    <i><span class="sw" style="background:var(--surface)"></span><span class="en">code step</span><span class="vi">bước xử lý bằng code</span></i>
+    <i><span class="sw" style="background:var(--amber-soft)"></span><span class="en">LLM step</span><span class="vi">bước dùng LLM</span></i>
+    <i><span class="sw" style="background:var(--accent-soft)"></span><span class="en">stored</span><span class="vi">lưu lại</span></i>
+  </div>
+  <div class="flow" aria-label="Enrichment flow">
+    <div class="step"><span class="n">1</span><b><span class="en">Pick records</span><span class="vi">Chọn hồ sơ</span></b><p><span class="en">Companies with no contact channel yet, a few at a time</span><span class="vi">Doanh nghiệp chưa có kênh liên hệ, mỗi lần vài hồ sơ</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">2</span><b><span class="en">Search</span><span class="vi">Tìm kiếm</span></b><p><span class="en">Fixed queries: "name + country + about us", "name + country + contact"</span><span class="vi">Truy vấn cố định: "tên + quốc gia + about us", "tên + quốc gia + contact"</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">3</span><b><span class="en">Read pages</span><span class="vi">Đọc trang</span></b><p><span class="en">The top public result per query, rendered in a browser</span><span class="vi">Kết quả công khai đứng đầu mỗi truy vấn, mở bằng trình duyệt</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step ai"><span class="n">4</span><b><span class="en">Match &amp; extract</span><span class="vi">Đối chiếu &amp; trích xuất</span></b><p><span class="en">Is this the same company? If so, which business details does the page state?</span><span class="vi">Có đúng công ty này không? Nếu đúng, trang ghi những thông tin doanh nghiệp nào?</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">5</span><b><span class="en">Fill &amp; log</span><span class="vi">Bổ sung &amp; ghi log</span></b><p><span class="en">Fill empty fields only; log every attempt and its outcome</span><span class="vi">Chỉ điền trường còn trống; ghi log mọi lần thử và kết quả</span></p></div>
+  </div>
+  <div class="col stack">
+    <p class="en">It runs two ways: in batches over the backlog, resuming from where the last batch stopped, and from an "Enrich contact" button on a single company record, so the sales team can fill one profile on demand.</p>
+    <p class="vi">Pipeline chạy theo hai cách: theo lô trên danh sách tồn đọng, tiếp tục từ chỗ lô trước dừng lại, và qua nút "Enrich contact" trên từng hồ sơ doanh nghiệp, để đội sales bổ sung một hồ sơ khi cần.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow" style="color:var(--amber)"><span class="en">The LLM step</span><span class="vi">Bước LLM</span></span>
+    <h2><span class="en">Decide identity first, extract second</span><span class="vi">Quyết định danh tính trước, trích xuất sau</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">The model returns a fixed schema in which the reasoning comes before the data. It has to compare the names word by word, check the country the page states (not the language it is written in), and say whether the page is the company's own site or a directory. Only then does it give a confidence score, and only a score above 90 out of 100 counts as a match. Below that, every data field must be empty.</p>
+    <p class="vi">Mô hình trả về một schema cố định, trong đó phần lập luận đứng trước dữ liệu. Nó phải so tên từng chữ một, kiểm tra quốc gia mà trang ghi (không phải ngôn ngữ của trang), và cho biết đây là website của chính công ty hay một trang danh bạ. Chỉ sau đó nó mới cho điểm độ tin cậy, và chỉ điểm trên 90/100 mới được tính là khớp. Dưới mức đó, mọi trường dữ liệu phải để trống.</p>
+  </div>
+  <div class="gate">
+    <div><b><span class="en">Names must really match</span><span class="vi">Tên phải khớp thật</span></b><span><span class="en">Only legal suffixes, letter case and transliteration may differ. Sharing a word like "Rice" or "Agro" is not a match.</span><span class="vi">Chỉ được khác hậu tố pháp lý, chữ hoa thường và cách phiên âm. Trùng một chữ như "Rice" hay "Agro" không được tính là khớp.</span></span></div>
+    <div><b><span class="en">Same name, other country = no</span><span class="vi">Cùng tên, khác nước = không</span></b><span><span class="en">The country must be the one the company states, not guessed from the page language.</span><span class="vi">Quốc gia phải là nước mà công ty tự ghi, không đoán từ ngôn ngữ của trang.</span></span></div>
+    <div><b><span class="en">Own site over directories</span><span class="vi">Ưu tiên website riêng</span></b><span><span class="en">Data comes from the company's own pages; listings on directories and aggregator sites are not trusted as the source.</span><span class="vi">Dữ liệu lấy từ trang của chính công ty; tin đăng trên danh bạ hay trang tổng hợp không được tin làm nguồn.</span></span></div>
+    <div><b><span class="en">Only what is stated</span><span class="vi">Chỉ lấy điều được ghi</span></b><span><span class="en">Founding year only if written; size and revenue only as ranges; no-reply and order addresses are excluded; nothing is mixed across companies.</span><span class="vi">Năm thành lập chỉ khi được ghi rõ; quy mô và doanh thu chỉ theo khoảng; bỏ địa chỉ no-reply và địa chỉ đặt hàng; không trộn dữ liệu giữa các công ty.</span></span></div>
+  </div>
+
+  <div class="example">
+    <div class="panel">
+      <span class="tag"><span class="en">Input record (fictional)</span><span class="vi">Hồ sơ đầu vào (hư cấu)</span></span>
+      <div class="doc">company_name: Delta Spice Trading Co., Ltd
+country:      Vietnam
+email:        (empty)
+phone:        (empty)
+website:      (empty)</div>
+      <span class="tag"><span class="en">Pages found</span><span class="vi">Trang tìm được</span></span>
+      <div class="doc">1. deltaspice.example/about    "Delta Spice Trading, founded 2012 in Dong Nai, Vietnam…"
+2. deltaspice.example/contact  "sales@… · +84 …"</div>
+    </div>
+    <div class="panel">
+      <span class="tag"><span class="en">Model output (shortened)</span><span class="vi">Mô hình trả về (rút gọn)</span></span>
+      <div class="json">{
+  <span class="r">"name_match_reasoning"</span>: "Same words; only 'Co., Ltd' differs",
+  <span class="r">"country_match_reasoning"</span>: "Page states Dong Nai, Vietnam",
+  <span class="r">"source_type_reasoning"</span>: "Company's own domain",
+  <span class="k">"match_confidence"</span>: 96,
+  <span class="k">"identity_match"</span>: true,
+  <span class="k">"website"</span>: "https://deltaspice.example",
+  <span class="k">"year_established"</span>: 2012,
+  <span class="k">"emails"</span>: ["sales@…"],
+  <span class="k">"phone_numbers"</span>: ["+84 …"]
+}</div>
+      <p class="muted" style="font-size:.85rem"><span class="en">If the pages had belonged to a company with the same name in another country, confidence would be under 20, identity_match false, and every field empty.</span><span class="vi">Nếu các trang thuộc về một công ty cùng tên ở nước khác, độ tin cậy sẽ dưới 20, identity_match là false, và mọi trường đều để trống.</span></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Writing back</span><span class="vi">Ghi lại dữ liệu</span></span>
+    <h2><span class="en">Never overwrite what a person already entered</span><span class="vi">Không bao giờ ghi đè dữ liệu con người đã nhập</span></h2>
+  </div>
+  <div class="layers">
+    <div class="layer"><b><span class="en">Fill-only</span><span class="vi">Chỉ điền chỗ trống</span></b><span><span class="en">Every field is written only if it is empty. Existing data always wins.</span><span class="vi">Mỗi trường chỉ được ghi khi đang trống. Dữ liệu sẵn có luôn được ưu tiên.</span></span></div>
+    <div class="layer"><b><span class="en">Contacts</span><span class="vi">Liên hệ</span></b><span><span class="en">Emails pass a format check; phone numbers are normalised for the company's country. Extra ones go into the record's list, without duplicates.</span><span class="vi">Email phải qua kiểm tra định dạng; số điện thoại được chuẩn hoá theo quốc gia của công ty. Các số còn lại vào danh sách của hồ sơ, không trùng lặp.</span></span></div>
+    <div class="layer"><b><span class="en">Profile details</span><span class="vi">Thông tin hồ sơ</span></b><span><span class="en">Description, founding year, size range and website are saved even when no contact channel was found, as long as the identity matched.</span><span class="vi">Mô tả, năm thành lập, quy mô và website vẫn được lưu kể cả khi không tìm thấy kênh liên hệ, miễn là danh tính khớp.</span></span></div>
+    <div class="layer"><b><span class="en">Audit log</span><span class="vi">Nhật ký</span></b><span><span class="en">Every attempt is logged with its outcome (matched, no confident match, error) and the model's reasoning, so a person can review any decision later.</span><span class="vi">Mọi lần thử đều được ghi log cùng kết quả (khớp, không đủ tin cậy, lỗi) và lập luận của mô hình, để con người có thể xem lại bất kỳ quyết định nào.</span></span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Validation</span><span class="vi">Kiểm chứng</span></span>
+    <h2><span class="en">A dry run before touching real records</span><span class="vi">Chạy thử trước khi chạm vào dữ liệu thật</span></h2>
+    <p class="muted en">The first version only wrote its results to a file for review. Nothing was saved to the database until the results had been checked by hand.</p>
+    <p class="muted vi">Phiên bản đầu chỉ ghi kết quả ra file để xem lại. Không có gì được lưu vào database cho tới khi kết quả đã được kiểm tra thủ công.</p>
+  </div>
+  <div class="scale">
+    <div class="good"><b>~4 / 5</b><span><span class="en">of a 50-record test batch got a confident match (39 of 50)</span><span class="vi">hồ sơ trong lô thử 50 hồ sơ được khớp chắc chắn (39 / 50)</span></span></div>
+    <div><b>~1 / 5</b><span><span class="en">were rejected as "no confident match" and left untouched, instead of guessed (11 of 50)</span><span class="vi">bị từ chối vì "không đủ tin cậy" và giữ nguyên, thay vì đoán (11 / 50)</span></span></div>
+    <div><b>~2</b><span><span class="en">pages read per company, which keeps the cost per record low</span><span class="vi">trang được đọc cho mỗi công ty, giữ chi phí mỗi hồ sơ thấp</span></span></div>
+  </div>
+  <p class="col muted" style="font-size:.92rem"><span class="en">The rejections are the point: for a sales team, an empty field is a to-do, while a wrong phone number is a wasted call and a bad first impression.</span><span class="vi">Những lần từ chối chính là mục đích: với đội sales, một trường trống là việc cần làm, còn một số điện thoại sai là một cuộc gọi phí công và một ấn tượng đầu tiên tệ.</span></p>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Quality review</span><span class="vi">Đánh giá chất lượng</span></span>
+    <h2><span class="en">How often was the match actually right?</span><span class="vi">Kết quả khớp thực sự đúng bao nhiêu lần?</span></h2>
+    <p class="muted en">I checked every accepted match from the 50-record test batch by hand against the company's own website: right company, right country, right contacts.</p>
+    <p class="muted vi">Tôi kiểm tra thủ công từng kết quả được chấp nhận trong lô thử 50 hồ sơ với website của chính công ty đó: đúng công ty, đúng quốc gia, đúng thông tin liên hệ.</p>
+  </div>
+  <div class="scale">
+    <div class="good"><b>~85%</b><span><span class="en">of accepted matches fully correct (33 of 39)</span><span class="vi">kết quả được chấp nhận đúng hoàn toàn (33 / 39)</span></span></div>
+    <div><b>~90%</b><span><span class="en">found the right company (35 of 39)</span><span class="vi">tìm đúng công ty (35 / 39)</span></span></div>
+    <div class="good"><b>5 / 5</b><span><span class="en">mistakes that simple checks after the model would catch</span><span class="vi">lỗi mà vài bước kiểm tra đơn giản sau mô hình bắt được</span></span></div>
+  </div>
+  <div class="col" style="margin-top:22px">
+    <div class="qbar" role="img" aria-label="50 records: 33 fully correct, 2 partly wrong, 3 wrong company, 1 unclear, 11 rejected">
+      <i class="ok" style="flex:33"></i><i class="part" style="flex:2"></i><i class="bad" style="flex:3"></i><i class="unk" style="flex:1"></i><i class="rej" style="flex:11"></i>
+    </div>
+    <div class="qlegend">
+      <span><i style="background:var(--good)"></i><span class="en">Fully correct · 33</span><span class="vi">Đúng hoàn toàn · 33</span></span>
+      <span><i style="background:var(--amber)"></i><span class="en">One wrong field · 2</span><span class="vi">Sai một trường · 2</span></span>
+      <span><i style="background:var(--bad)"></i><span class="en">Wrong company · 3</span><span class="vi">Sai công ty · 3</span></span>
+      <span><i style="background:var(--muted)"></i><span class="en">Unclear · 1</span><span class="vi">Chưa rõ · 1</span></span>
+      <span><i style="background:var(--code-bg)"></i><span class="en">Rejected · 11</span><span class="vi">Bị từ chối · 11</span></span>
+    </div>
+  </div>
+  <div class="col" style="margin-top:26px">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th><span class="en">Mistake</span><span class="vi">Lỗi</span></th><th><span class="en">Check that catches it</span><span class="vi">Bước kiểm tra bắt được</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="en">A common name matched a same-name company in another country</span><span class="vi">Tên phổ biến khớp nhầm công ty trùng tên ở quốc gia khác</span></td><td><span class="catch"><span class="en">email domain must match the website</span><span class="vi">tên miền email phải khớp website</span></span></td></tr>
+          <tr><td><span class="en">A plausible-looking value was invented (placeholder phone, non-existent domain)</span><span class="vi">Một giá trị trông hợp lý bị bịa ra (số điện thoại mẫu, tên miền không tồn tại)</span></td><td><span class="catch"><span class="en">value must appear on the source page; domain must exist</span><span class="vi">giá trị phải có trên trang nguồn; tên miền phải tồn tại</span></span></td></tr>
+          <tr><td><span class="en">Right emails, but the website of another company</span><span class="vi">Email đúng nhưng website của công ty khác</span></td><td><span class="catch"><span class="en">email domain must match the website</span><span class="vi">tên miền email phải khớp website</span></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px"><span class="en">Every mistake came with a confidence score of 95 or higher, so a stricter threshold would not have helped. The answer is deterministic checks after the model, not a more confident model.</span><span class="vi">Mọi lỗi đều có điểm tin cậy từ 95 trở lên, nên nâng ngưỡng không giúp được. Lời giải là các bước kiểm tra cố định sau mô hình, không phải một mô hình tự tin hơn.</span></p>
+  </div>
+</section>
+
+
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Architecture</span><span class="vi">Kiến trúc</span></span>
+    <h2><span class="en">The risky part runs in its own box</span><span class="vi">Phần rủi ro chạy trong một chiếc hộp riêng</span></h2>
+    <p class="muted en">Search, browsing and the LLM run in a separate process with its own environment and a time limit. The main application only sends a name and a country, and gets back one JSON object.</p>
+    <p class="muted vi">Tìm kiếm, mở trang và LLM chạy trong một tiến trình riêng, có môi trường riêng và giới hạn thời gian. Ứng dụng chính chỉ gửi đi tên và quốc gia, và nhận về một object JSON.</p>
+  </div>
+  <figure class="arch">
+    <svg viewBox="0 0 860 350" role="img" aria-label="The main application queues records in jobs of five; a worker hands one name and country to an isolated process that searches, reads pages in a headless browser and asks an LLM for a fixed schema; the JSON result passes a gate, then is written fill-only, and every attempt is logged with a batch cursor." xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker><marker id="ahh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk hot" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="lane" x="5" y="8" width="505" height="334" rx="12"/><text class="lb en" x="17" y="24">MAIN APPLICATION</text><text class="lb vi" x="17" y="24">ỨNG DỤNG CHÍNH</text><rect class="lane" x="530" y="8" width="325" height="334" rx="12"/><text class="lb en" x="542" y="24">ISOLATED PROCESS · 120 S LIMIT</text><text class="lb vi" x="542" y="24">TIẾN TRÌNH RIÊNG · TỐI ĐA 120 S</text><rect class="bx ex" x="20" y="40" width="150" height="64" rx="8"/><text class="t en" x="95.0" y="62.0" text-anchor="middle">Trigger</text><text class="t vi" x="95.0" y="62.0" text-anchor="middle">Kích hoạt</text><text class="s en" x="95.0" y="78.0" text-anchor="middle">button on a record</text><text class="s vi" x="95.0" y="78.0" text-anchor="middle">nút trên hồ sơ</text><text class="s en" x="95.0" y="92.0" text-anchor="middle">or daily batch</text><text class="s vi" x="95.0" y="92.0" text-anchor="middle">hoặc lô hằng ngày</text><rect class="bx " x="188" y="40" width="150" height="64" rx="8"/><text class="t en" x="263.0" y="69.0" text-anchor="middle">Job queue</text><text class="t vi" x="263.0" y="69.0" text-anchor="middle">Hàng đợi job</text><text class="s en" x="263.0" y="85.0" text-anchor="middle">jobs of 5 records</text><text class="s vi" x="263.0" y="85.0" text-anchor="middle">mỗi job 5 hồ sơ</text><rect class="bx " x="356" y="40" width="140" height="64" rx="8"/><text class="t en" x="426.0" y="62.0" text-anchor="middle">Worker</text><text class="t vi" x="426.0" y="62.0" text-anchor="middle">Worker</text><text class="s en" x="426.0" y="78.0" text-anchor="middle">one record</text><text class="s vi" x="426.0" y="78.0" text-anchor="middle">mỗi lần xử lý</text><text class="s en" x="426.0" y="92.0" text-anchor="middle">at a time</text><text class="s vi" x="426.0" y="92.0" text-anchor="middle">một hồ sơ</text><rect class="bx ex" x="548" y="40" width="290" height="64" rx="8"/><text class="t en" x="693.0" y="69.0" text-anchor="middle">Search API</text><text class="t vi" x="693.0" y="69.0" text-anchor="middle">API tìm kiếm</text><text class="s en" x="693.0" y="85.0" text-anchor="middle">two fixed queries: name + country</text><text class="s vi" x="693.0" y="85.0" text-anchor="middle">hai truy vấn cố định: tên + quốc gia</text><rect class="bx " x="548" y="140" width="290" height="64" rx="8"/><text class="t en" x="693.0" y="169.0" text-anchor="middle">Headless browser</text><text class="t vi" x="693.0" y="169.0" text-anchor="middle">Trình duyệt headless</text><text class="s en" x="693.0" y="185.0" text-anchor="middle">pages read in parallel, one failure isolated</text><text class="s vi" x="693.0" y="185.0" text-anchor="middle">đọc trang song song, lỗi trang nào riêng trang đó</text><rect class="bx ai" x="548" y="240" width="290" height="64" rx="8"/><text class="t en" x="693.0" y="269.0" text-anchor="middle">LLM + fixed schema</text><text class="t vi" x="693.0" y="269.0" text-anchor="middle">LLM + schema cố định</text><text class="s en" x="693.0" y="285.0" text-anchor="middle">reasoning → score → fields</text><text class="s vi" x="693.0" y="285.0" text-anchor="middle">lập luận → điểm → các trường</text><path class="ar" d="M170 72 H188" marker-end="url(#ah)"/><path class="ar" d="M338 72 H356" marker-end="url(#ah)"/><path class="ar" d="M496 72 H548" marker-end="url(#ah)"/><path class="ar" d="M693 104 V140" marker-end="url(#ah)"/><path class="ar" d="M693 204 V240" marker-end="url(#ah)"/><rect class="bx " x="356" y="200" width="140" height="64" rx="8"/><text class="t en" x="426.0" y="222.0" text-anchor="middle">Gate</text><text class="t vi" x="426.0" y="222.0" text-anchor="middle">Cổng</text><text class="s en" x="426.0" y="238.0" text-anchor="middle">match only if</text><text class="s vi" x="426.0" y="238.0" text-anchor="middle">chỉ khớp khi</text><text class="s en" x="426.0" y="252.0" text-anchor="middle">score &gt; 90</text><text class="s vi" x="426.0" y="252.0" text-anchor="middle">điểm &gt; 90</text><path class="ar hot" d="M548 272 H520 V232 H496" marker-end="url(#ahh)"/><rect class="bx st" x="188" y="160" width="150" height="64" rx="8"/><text class="t en" x="263.0" y="189.0" text-anchor="middle">Fill-only write</text><text class="t vi" x="263.0" y="189.0" text-anchor="middle">Chỉ điền chỗ trống</text><text class="s en" x="263.0" y="205.0" text-anchor="middle">never overwrites</text><text class="s vi" x="263.0" y="205.0" text-anchor="middle">không ghi đè</text><rect class="bx st" x="188" y="262" width="150" height="64" rx="8"/><text class="t en" x="263.0" y="284.0" text-anchor="middle">Crawl log</text><text class="t vi" x="263.0" y="284.0" text-anchor="middle">Crawl log</text><text class="s en" x="263.0" y="300.0" text-anchor="middle">one row per attempt</text><text class="s vi" x="263.0" y="300.0" text-anchor="middle">mỗi lần thử một dòng</text><text class="s en" x="263.0" y="314.0" text-anchor="middle">+ batch cursor</text><text class="s vi" x="263.0" y="314.0" text-anchor="middle">+ con trỏ lô</text><path class="ar" d="M356 220 H338" marker-end="url(#ah)"/><path class="ar" d="M356 244 H347 V294 H338" marker-end="url(#ah)"/><path class="ar dash" d="M188 294 H95 V104" marker-end="url(#ah)"/><text class="al en" x="101" y="250">next batch starts here</text><text class="al vi" x="101" y="250">lô sau bắt đầu từ đây</text></svg>
+    <div class="arch-key">
+      <span><i style="background:var(--amber-soft);border-color:var(--amber)"></i><span class="en">LLM step</span><span class="vi">Bước LLM</span></span>
+      <span><i style="background:var(--accent-soft);border-color:var(--accent)"></i><span class="en">Stored data</span><span class="vi">Dữ liệu lưu trữ</span></span>
+      <span><i style="border-style:dashed;border-color:var(--muted)"></i><span class="en">Outside service or user</span><span class="vi">Dịch vụ bên ngoài hoặc người dùng</span></span>
+    </div>
+    <figcaption><span class="en">If the isolated process crashes, times out or returns something that is not JSON, the main application treats it as “no match”: the record is left as it was and the attempt is logged.</span><span class="vi">Nếu tiến trình riêng bị crash, quá thời gian hoặc trả về thứ không phải JSON, ứng dụng chính coi đó là “không khớp”: hồ sơ giữ nguyên và lần thử được ghi log.</span></figcaption>
+  </figure>
+  <ul class="clean col" style="margin-top:18px">
+    <li><span class="en"><strong>Dependency isolation.</strong> The scraping library needed a newer AI SDK than the main app could take; a separate environment avoided a risky upgrade.</span><span class="vi"><strong>Cô lập thư viện.</strong> Thư viện scrape cần SDK AI mới hơn mức ứng dụng chính dùng được; môi trường riêng giúp tránh một lần nâng cấp rủi ro.</span></li>
+    <li><span class="en"><strong>Small, resumable batches.</strong> Records go five to a job and a cursor in the log remembers where the last batch stopped, so a daily run picks up where it left off.</span><span class="vi"><strong>Lô nhỏ, chạy tiếp được.</strong> Mỗi job xử lý năm hồ sơ, con trỏ trong log nhớ lô trước dừng ở đâu, nên lần chạy hằng ngày tiếp tục đúng chỗ.</span></li>
+    <li><span class="en"><strong>Every attempt is auditable.</strong> Matches and rejections both leave a log row with the model’s reasoning, which is what made the hand review possible.</span><span class="vi"><strong>Mọi lần thử đều kiểm tra lại được.</strong> Cả khớp lẫn từ chối đều để lại một dòng log kèm lập luận của mô hình, nhờ đó mới chấm tay được.</span></li>
+  </ul>
+</section>
+
+
+
+<section data-add="operations">
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Operations</span><span class="vi">Vận hành</span></span>
+    <h2><span class="en">How it runs day to day</span><span class="vi">Hệ thống chạy hằng ngày thế nào</span></h2>
+    <p class="muted en">A pipeline that calls search, a browser and an LLM for every record has to be boring to operate. These are the settings that keep it small, steady and easy to check.</p>
+    <p class="muted vi">Một pipeline gọi tìm kiếm, trình duyệt và LLM cho mỗi hồ sơ thì phải vận hành thật nhàm chán. Đây là các thiết lập giúp nó nhỏ gọn, đều đặn và dễ kiểm tra.</p>
+  </div>
+  <div class="table-wrap" style="margin-top:20px"><table>
+    <thead><tr><th><span class="en">Setting</span><span class="vi">Thiết lập</span></th><th><span class="en">How it works</span><span class="vi">Cách hoạt động</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Triggers</span><span class="vi">Kích hoạt</span></td><td><span class="en">A button on a single record for sales, and a daily batch for the backlog.</span><span class="vi">Một nút trên từng hồ sơ cho sales, và một lô chạy hằng ngày cho phần tồn đọng.</span></td></tr><tr><td class="k"><span class="en">What gets picked</span><span class="vi">Chọn hồ sơ nào</span></td><td><span class="en">Up to 200 records a day that have neither an email nor a phone, read in order from a saved cursor. Records already tried are skipped, so the batch always moves forward.</span><span class="vi">Tối đa 200 hồ sơ mỗi ngày chưa có cả email lẫn số điện thoại, đọc theo thứ tự từ một con trỏ đã lưu. Hồ sơ đã thử sẽ được bỏ qua, nên lô luôn tiến về phía trước.</span></td></tr><tr><td class="k"><span class="en">Unit of work</span><span class="vi">Đơn vị công việc</span></td><td><span class="en">Jobs of 5 records on a queue for long tasks, one record at a time. Each record is saved on its own, so one failure never undoes the others.</span><span class="vi">Mỗi job 5 hồ sơ trên hàng đợi dành cho tác vụ dài, xử lý từng hồ sơ một. Mỗi hồ sơ được lưu riêng, nên một lỗi không làm mất kết quả của các hồ sơ khác.</span></td></tr><tr><td class="k"><span class="en">Time limits</span><span class="vi">Giới hạn thời gian</span></td><td><span class="en">120 seconds per company inside the isolated process; 5 minutes for a single-record job started from the button.</span><span class="vi">120 giây cho mỗi công ty trong tiến trình riêng; 5 phút cho một job một hồ sơ chạy từ nút bấm.</span></td></tr><tr><td class="k"><span class="en">Audit trail</span><span class="vi">Dấu vết kiểm tra</span></td><td><span class="en">One log row per attempt: what was found and the score when it matched, the score and the model’s reasoning when it did not.</span><span class="vi">Mỗi lần thử một dòng log: tìm được gì và điểm số nếu khớp, điểm số và lập luận của mô hình nếu không khớp.</span></td></tr><tr><td class="k"><span class="en">Safe start</span><span class="vi">Khởi động an toàn</span></td><td><span class="en">A dry-run mode writes results to a file instead of the database; it was used for the 50-record review above before anything was saved.</span><span class="vi">Chế độ dry run ghi kết quả ra file thay vì database; chế độ này được dùng cho lô đánh giá 50 hồ sơ ở trên trước khi lưu bất cứ thứ gì.</span></td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Decisions and trade-offs</span><span class="vi">Quyết định và đánh đổi</span></span>
+    <h2><span class="en">What I chose, and why</span><span class="vi">Tôi đã chọn gì, và vì sao</span></h2>
+  </div>
+  <div class="decisions">
+    <div class="dec"><h3><span class="en">Precision over coverage</span><span class="vi">Chính xác hơn độ phủ</span></h3><p><span class="en">A strict match rule leaves some records empty, but most filled records can be trusted (about 85% fully correct in the hand review). A looser rule would have filled more and been right less often.</span><span class="vi">Luật khớp chặt khiến một số hồ sơ vẫn trống, nhưng phần lớn hồ sơ được điền đều đáng tin (khoảng 85% đúng hoàn toàn khi kiểm tra thủ công). Luật lỏng hơn sẽ điền được nhiều hơn nhưng đúng ít hơn.</span></p></div>
+    <div class="dec"><h3><span class="en">Fixed search queries, not model-written ones</span><span class="vi">Truy vấn cố định, không để mô hình tự viết</span></h3><p><span class="en">Letting the LLM write search queries made results vary between runs and cost an extra call. Two fixed queries per company are cheaper and reproducible. I also switched search providers after the first one proved unreliable.</span><span class="vi">Để LLM tự viết truy vấn khiến kết quả thay đổi giữa các lần chạy và tốn thêm một lượt gọi. Hai truy vấn cố định cho mỗi công ty rẻ hơn và lặp lại được. Tôi cũng đổi nhà cung cấp tìm kiếm sau khi bên đầu tiên tỏ ra không ổn định.</span></p></div>
+    <div class="dec"><h3><span class="en">Reasoning fields before the score</span><span class="vi">Trường lập luận đứng trước điểm</span></h3><p><span class="en">Asking for the name, country and source comparison before the confidence number makes the score depend on explicit checks, and leaves a readable explanation in the log.</span><span class="vi">Yêu cầu so tên, quốc gia và nguồn trước khi cho điểm khiến điểm số dựa trên các bước kiểm tra rõ ràng, và để lại lời giải thích đọc được trong log.</span></p></div>
+    <div class="dec"><h3><span class="en">An isolated environment for the scraper</span><span class="vi">Môi trường riêng cho bộ scrape</span></h3><p><span class="en">The scraping library needed a newer AI SDK than the main application could use. Running it as a separate process with its own environment and a time limit avoided a risky upgrade and keeps a stuck page from blocking the app.</span><span class="vi">Thư viện scrape cần phiên bản SDK AI mới hơn mức ứng dụng chính dùng được. Chạy nó thành một tiến trình riêng với môi trường riêng và giới hạn thời gian giúp tránh một lần nâng cấp rủi ro, và một trang bị treo không làm nghẽn ứng dụng.</span></p></div>
+    <div class="dec"><h3><span class="en">One failing page doesn't sink the batch</span><span class="vi">Một trang lỗi không kéo cả lô</span></h3><p><span class="en">Pages are read in parallel and each failure is recorded per page, so a timeout on one site still lets the others be used.</span><span class="vi">Các trang được đọc song song và lỗi được ghi riêng cho từng trang, nên một website bị timeout thì các trang khác vẫn dùng được.</span></p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Lessons</span><span class="vi">Bài học</span></span>
+    <h2><span class="en">What I would tell the next person</span><span class="vi">Điều tôi muốn chia sẻ</span></h2>
+  </div>
+  <p class="quote"><span class="en">In data enrichment, "I don't know" is a valid answer. Design for it.</span><span class="vi">Trong làm giàu dữ liệu, "tôi không biết" là một câu trả lời hợp lệ. Hãy thiết kế cho nó.</span></p>
+  <ul class="clean col">
+    <li><span class="en"><strong>Run dry first.</strong> Reviewing a results file before writing anything caught matching mistakes that would have been hard to undo in the database.</span><span class="vi"><strong>Chạy thử trước.</strong> Xem lại file kết quả trước khi ghi bất cứ thứ gì giúp phát hiện lỗi đối chiếu mà nếu đã vào database thì khó gỡ.</span></li>
+    <li><span class="en"><strong>Confidence is not accuracy.</strong> Score the accepted results by hand. Here every wrong answer had a high score, which pointed to checks outside the model.</span><span class="vi"><strong>Tự tin không phải là chính xác.</strong> Hãy tự chấm tay các kết quả được chấp nhận. Ở đây mọi câu trả lời sai đều có điểm cao, cho thấy cần kiểm tra bên ngoài mô hình.</span></li>
+    <li><span class="en"><strong>Respect existing data.</strong> Fill-only writes made the pipeline safe to run on records people had already worked on.</span><span class="vi"><strong>Tôn trọng dữ liệu sẵn có.</strong> Chỉ điền chỗ trống giúp pipeline chạy an toàn trên cả những hồ sơ mà con người đã chỉnh sửa.</span></li>
+    <li><span class="en"><strong>Keep the scope narrow.</strong> Collecting only what companies publish about themselves, for business contact, kept the system simple to explain and to defend.</span><span class="vi"><strong>Giữ phạm vi hẹp.</strong> Chỉ thu thập những gì công ty tự công bố, phục vụ liên hệ kinh doanh, giúp hệ thống dễ giải thích và dễ bảo vệ.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col"><span class="eyebrow">Stack</span></div>
+  <div class="chips">
+    <span>Python</span><span>ScrapeGraphAI</span><span>Playwright</span><span><span class="en">Web search API</span><span class="vi">API tìm kiếm web</span></span><span>OpenAI SDK · GPT-4o mini</span><span>Pydantic · structured output</span><span>asyncio</span><span><span class="en">Background job queue</span><span class="vi">Hàng đợi job nền</span></span></div>
+</section>
+
+<footer>
+  <div class="contact">
+    <a href="https://www.linkedin.com/in/tuanvinh-24a875396">LinkedIn</a>
+    <a href="https://github.com/VinhTuan-maker">GitHub</a>
+  </div>
+  <span class="en">Case study by Tran Vinh Tuan, AI Engineer. A personal portfolio piece describing my own work; not an official company publication. Internal code, prompts, credentials and customer data are not shown, and figures are rounded.</span>
+  <span class="vi">Case study của Trần Vĩnh Tuấn, AI Engineer. Tài liệu portfolio cá nhân mô tả công việc của tôi, không phải ấn phẩm chính thức của công ty. Không hiển thị mã nguồn, prompt, thông tin đăng nhập hay dữ liệu khách hàng; số liệu đã được làm tròn.</span>
+</footer>
+</main>
+<script>
+(function(){
+  var b=document.body, en=document.getElementById('btn-en'), vi=document.getElementById('btn-vi');
+  function set(l){
+    b.classList.toggle('lang-vi', l==='vi');
+    document.documentElement.lang = l;
+    en.setAttribute('aria-pressed', l==='en'); vi.setAttribute('aria-pressed', l==='vi');
+    try{localStorage.setItem('cs-lang', l)}catch(e){}
+  }
+  en.addEventListener('click',function(){set('en')});
+  vi.addEventListener('click',function(){set('vi')});
+  var start='en';
+  if(location.hash==='#vi') start='vi';
+  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'en' }catch(e){} }
+  set(start);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Web Data Collection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with full-width flow, format grid and an input→output example; slim sticky header with EN/VI switch. Same family as the other case studies, ledger-plum accent. */
+:root{
+  --bg:#f3f3f6;          /* paper-catalog grey, indigo-biased */
+  --surface:#ffffff;
+  --ink:#1b1c2b;
+  --muted:#5a5c6e;
+  --line:#d9d9e3;
+  --accent:#a03a1c;      /* brick */
+  --accent-soft:#f6e3dc;
+  --amber:#b4610b;       /* LLM step */
+  --amber-soft:#f8ead9;
+  --good:#1f7a52;
+  --bad:#b3261e;
+  --bad-soft:#f9e3e1;
+  --code-bg:#ebebf1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+    --accent:#f0957a; --accent-soft:#3d2219; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --bad:#f2867c; --bad-soft:#3d1f1f; --code-bg:#23253a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+  --accent:#f0957a; --accent-soft:#3d2219; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --bad:#f2867c; --bad-soft:#3d1f1f; --code-bg:#23253a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.65;padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,3.6vw,2.15rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+.vi{display:none}
+body.lang-vi .en{display:none}
+body.lang-vi .vi{display:revert}
+span.vi,span.en{display:inline}
+body.lang-vi span.en{display:none}
+body:not(.lang-vi) span.vi{display:none}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-20px;padding:10px 20px}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.switch{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.switch button{font:500 .8rem var(--f-mono);background:transparent;color:var(--muted);border:0;padding:6px 14px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.switch button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.hero{padding-block:56px 40px;display:flex;flex-direction:column;gap:22px}
+.lede{font-size:1.2rem;color:var(--muted);max-width:60ch}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.meta div{background:var(--surface);padding:14px 16px;min-width:0}
+.meta dt{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.meta dd{margin:4px 0 0;font-weight:500;font-size:.95rem}
+
+section{padding-block:44px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:22px}
+.sec-head{display:flex;flex-direction:column;gap:8px}
+
+.flow{display:flex;flex-wrap:wrap;align-items:stretch}
+.step{flex:1 1 130px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.step .n{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.step b{font-family:var(--f-display);font-size:1.02rem}
+.step p{font-size:.86rem;color:var(--muted);line-height:1.5}
+.step.ai{background:var(--amber-soft);border-color:transparent}
+.step.store{background:var(--accent-soft);border-color:transparent}
+.arrow{flex:0 0 24px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--f-mono)}
+@media (max-width:760px){.flow{flex-direction:column}.arrow{flex-basis:22px;transform:rotate(90deg)}}
+.flow-label{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.flow-label i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.lane{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.formats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.fmt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fmt .ext{font-family:var(--f-mono);font-size:.78rem;color:var(--accent);letter-spacing:.04em}
+.fmt p{font-size:.88rem;color:var(--muted);line-height:1.5}
+
+.example{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.example{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel .tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.doc{font-family:var(--f-mono);font-size:.78rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre-wrap;overflow-x:auto;line-height:1.55}
+.json{font-family:var(--f-mono);font-size:.76rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre;overflow-x:auto;line-height:1.5}
+.json .k{color:var(--accent)}
+.json .r{color:var(--amber)}
+.json .c{color:var(--muted)}
+
+.gate{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.gate div{border-left:3px solid var(--accent);padding:4px 0 4px 14px;min-width:0}
+.gate b{display:block;font-size:.98rem}
+.gate span{font-size:.9rem;color:var(--muted)}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:600}
+.pill{font-family:var(--f-mono);font-size:.72rem;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pill.cloud{background:var(--accent-soft)}
+.pill.self{background:var(--amber-soft)}
+
+.layers{display:flex;flex-direction:column;gap:8px}
+.layer{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.layer b{font-size:.92rem}
+.layer span{font-size:.9rem;color:var(--muted)}
+@media (max-width:560px){.layer{grid-template-columns:1fr}}
+
+.scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.scale div{background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.scale b{font-family:var(--f-display);font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.scale span{font-size:.86rem;color:var(--muted)}
+.scale .good b{color:var(--good)}
+
+.qbar{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.qbar i{display:block;min-width:4px}
+.qbar .ok{background:var(--good)}
+.qbar .part{background:var(--amber)}
+.qbar .bad{background:var(--bad)}
+.qbar .unk{background:var(--muted)}
+.qbar .rej{background:var(--code-bg)}
+.qlegend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.86rem;color:var(--muted);margin-top:10px}
+.qlegend span{display:inline-flex;align-items:center;gap:6px}
+.qlegend i{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+td .catch{font-family:var(--f-mono);font-size:.76rem;color:var(--good)}
+.decisions{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.dec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 28px;padding-block:18px;border-bottom:1px solid var(--line)}
+.dec h3{font-size:1.02rem}
+.dec p{font-size:.95rem;color:var(--muted)}
+@media (max-width:640px){.dec{grid-template-columns:1fr}}
+
+ul.clean{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+.quote{font-family:var(--f-display);font-size:1.35rem;line-height:1.35;border-left:3px solid var(--amber);padding-left:18px;max-width:52ch}
+
+.datanote{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--surface);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.datanote .t{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.datanote dl{margin:0;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:6px 16px;font-size:.9rem}
+.datanote dt{font-weight:600}
+.datanote dd{margin:0;color:var(--muted)}
+@media (max-width:560px){.datanote dl{grid-template-columns:1fr}.datanote dd{margin-bottom:6px}}
+footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+.contact{display:flex;flex-wrap:wrap;gap:10px 20px;margin-bottom:14px}
+@media (prefers-reduced-motion:no-preference){.switch button{transition:background .15s,color .15s}}
+
+
+
+/* architecture figure */
+.arch{margin:22px 0 0;overflow-x:auto}
+.arch svg{display:block;width:100%;min-width:720px;height:auto}
+.arch .bx{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.arch .bx.ai{fill:var(--amber-soft);stroke:var(--amber)}
+.arch .bx.st{fill:var(--accent-soft);stroke:var(--accent)}
+.arch .bx.ex{fill:var(--surface);stroke:var(--muted);stroke-dasharray:4 3}
+.arch .lane{fill:none;stroke:var(--line);stroke-dasharray:6 5;stroke-width:1.2}
+.arch .t{font:600 13px var(--f-body);fill:var(--ink)}
+.arch .s{font:11px var(--f-body);fill:var(--muted)}
+.arch .lb{font:500 10.5px var(--f-mono);fill:var(--muted);letter-spacing:.06em}
+.arch .al{font:500 10.5px var(--f-mono);fill:var(--accent)}
+.arch .ar{fill:none;stroke:var(--muted);stroke-width:1.4}
+.arch .ar.hot{stroke:var(--accent)}
+.arch .ar.dash{stroke-dasharray:4 3}
+.arch .mk{fill:var(--muted)}
+.arch .mk.hot{fill:var(--accent)}
+.arch figcaption{font-size:.88rem;color:var(--muted);margin-top:10px;max-width:68ch}
+.arch-key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.84rem;color:var(--muted);margin-top:8px}
+.arch-key span{display:inline-flex;align-items:center;gap:6px}
+.arch-key i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.chips span span{border:0;padding:0;background:none;font:inherit}
+.lvl{font-family:var(--f-mono);font-size:.7rem;color:var(--accent);letter-spacing:1px;white-space:nowrap}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./" style="color:inherit;text-decoration:none">← <span class="en">All case studies</span><span class="vi">Tất cả case study</span> · Tran Vinh Tuan</a>
+  <div class="switch" role="group" aria-label="Language">
+    <button type="button" id="btn-en" aria-pressed="true">EN</button>
+    <button type="button" id="btn-vi" aria-pressed="false">VI</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<div class="hero">
+  <span class="eyebrow"><span class="en">Web scraping · Python</span><span class="vi">Web scraping · Python</span></span>
+  <h1><span class="en">Ten websites, ten small pipelines</span><span class="vi">Mười website, mười pipeline nhỏ</span></h1>
+    <p class="en lede">The problem: company, product and trade-event data had to be collected from about ten public websites. Each site got its own small pipeline with the same shape. What changed from site to site was the toolset: plain requests or a real browser, a proxy pool or not, a logged-in session or not, one process or many. This page is about those mechanisms and how the data was stored so long runs could stop and resume.</p>
+    <p class="vi lede">Bài toán: cần thu thập dữ liệu doanh nghiệp, sản phẩm và hội chợ thương mại từ khoảng mười website công khai. Mỗi website có một pipeline nhỏ riêng, cùng một khung. Thứ thay đổi giữa các website là bộ công cụ: request thường hay trình duyệt thật, có pool proxy hay không, có đăng nhập hay không, một tiến trình hay nhiều tiến trình. Trang này nói về các cơ chế đó, và cách lưu dữ liệu để những lần chạy dài có thể dừng rồi chạy tiếp.</p>
+  <dl class="meta">
+    <div><dt><span class="en">Role</span><span class="vi">Vai trò</span></dt><dd><span class="en">Built the pipelines and the shared fetch layer</span><span class="vi">Xây các pipeline và lớp tải trang dùng chung</span></dd></div>
+    <div><dt><span class="en">Sources</span><span class="vi">Nguồn</span></dt><dd><span class="en">~10 · directories, catalogs, events</span><span class="vi">~10 · danh bạ, catalog, sự kiện</span></dd></div>
+    <div><dt><span class="en">Toolset</span><span class="vi">Công cụ</span></dt><dd>requests · Playwright · Selenium · multiprocessing</dd></div>
+    <div><dt><span class="en">Built</span><span class="vi">Thời gian</span></dt><dd><span class="en">Sep 2025 – Jun 2026</span><span class="vi">09/2025 – 06/2026</span></dd></div>
+  </dl>
+</div>
+
+<aside class="datanote" aria-label="About this case study">
+  <span class="t"><span class="en">About this case study and its data</span><span class="vi">Về case study này và số liệu</span></span>
+  <dl>
+    <dt><span class="en">What this is</span><span class="vi">Đây là gì</span></dt><dd><span class="en">A personal portfolio piece describing pipelines I designed and built as an engineer. My employer and the websites involved are not named on purpose; the page is my own description, not an official document.</span><span class="vi">Tài liệu portfolio cá nhân, mô tả các pipeline tôi đã thiết kế và xây khi làm kỹ sư. Nơi tôi làm việc và các website liên quan được cố ý không nêu tên; đây là mô tả của riêng tôi, không phải tài liệu chính thức.</span></dd>
+    <dt><span class="en">Sources</span><span class="vi">Nguồn</span></dt><dd><span class="en">Described by type, never by name. What was collected is business information published on those sites: directory listings, product catalog pages and trade-event listings.</span><span class="vi">Được mô tả theo loại, không bao giờ theo tên. Dữ liệu thu thập là thông tin kinh doanh được đăng công khai trên các website đó: danh bạ doanh nghiệp, trang catalog sản phẩm và danh sách hội chợ.</span></dd>
+    <dt><span class="en">Numbers</span><span class="vi">Số liệu</span></dt><dd><span class="en">Every figure is a setting taken from the code (workers, pauses, timeouts, restart intervals). No collection totals are shown.</span><span class="vi">Mọi con số là thiết lập lấy từ code (số worker, thời gian nghỉ, timeout, chu kỳ khởi động lại). Không hiển thị tổng số bản ghi thu thập.</span></dd>
+    <dt><span class="en">Not included</span><span class="vi">Không có trong trang</span></dt><dd><span class="en">Source code, website names, proxy providers and addresses, account details, credentials, and any collected record.</span><span class="vi">Mã nguồn, tên website, nhà cung cấp và địa chỉ proxy, thông tin tài khoản, thông tin đăng nhập, và mọi bản ghi đã thu thập.</span></dd>
+  </dl>
+</aside>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">How it works</span><span class="vi">Cách hoạt động</span></span>
+    <h2><span class="en">One small pipeline per website</span><span class="vi">Mỗi website một pipeline nhỏ</span></h2>
+    <p class="en muted">Every website gets its own pipeline, and every pipeline follows the same five steps. Only the tools used in step 4 change from site to site.</p>
+    <p class="vi muted">Mỗi website có một pipeline riêng, và pipeline nào cũng đi qua cùng năm bước. Chỉ có công cụ dùng ở bước 4 là thay đổi theo từng website.</p>
+  </div>
+  <div class="flow" aria-label="Per-source pipeline">
+    <div class="step "><span class="n">1</span><b><span class="en">Seed</span><span class="vi">Hạt giống</span></b><p><span class="en">A short list of categories, cities or countries to search</span><span class="vi">Một danh sách ngắn gồm danh mục, thành phố hoặc quốc gia cần tìm</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">2</span><b><span class="en">List</span><span class="vi">Lật trang</span></b><p><span class="en">Page through the search results until a page comes back empty</span><span class="vi">Lật từng trang kết quả cho tới khi gặp trang rỗng</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">3</span><b><span class="en">Queue</span><span class="vi">Xếp hàng</span></b><p><span class="en">Every detail URL becomes one row, marked “pending”</span><span class="vi">Mỗi URL chi tiết thành một dòng, đánh dấu “chờ”</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">4</span><b><span class="en">Collect</span><span class="vi">Thu thập</span></b><p><span class="en">Workers fetch and read each pending URL</span><span class="vi">Worker tải và đọc từng URL đang chờ</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">5</span><b><span class="en">Save</span><span class="vi">Lưu</span></b><p><span class="en">Write the record and mark the row done</span><span class="vi">Ghi bản ghi và đánh dấu dòng là xong</span></p></div>
+  </div>
+  <div class="col stack" style="margin-top:26px">
+    <p class="en"><strong>From easy to hard.</strong> What really differs between websites is how hard they are to read. I sorted every source onto this eight-step ladder and used the cheapest step that worked; each step down adds a tool and a cost.</p>
+    <p class="vi"><strong>Từ dễ đến khó.</strong> Điều thật sự khác nhau giữa các website là mức độ khó đọc. Tôi xếp mọi nguồn lên bậc thang tám bậc này và dùng bậc rẻ nhất mà vẫn chạy được; mỗi bậc xuống dưới thêm một công cụ và một khoản chi phí.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span class="en">Level</span><span class="vi">Cấp độ</span></th><th><span class="en">Example</span><span class="vi">Ví dụ</span></th><th><span class="en">How it is handled</span><span class="vi">Cách xử lý</span></th><th><span class="en">What makes it hard</span><span class="vi">Cái khó</span></th></tr></thead>
+    <tbody><tr><td class="k"><b><span class="en">1 · Open JSON</span><span class="vi">1 · JSON mở</span></b><br><span class="lvl" aria-label="difficulty 1 of 8">●○○○○○○○</span></td><td><span class="en">An events API (20 events per call); a directory’s public API for countries, cities and search.</span><span class="vi">Một API sự kiện (20 sự kiện mỗi lần gọi); API công khai của một danh bạ cho quốc gia, thành phố và tìm kiếm.</span></td><td><span class="en">Call the endpoint, map the fields.</span><span class="vi">Gọi endpoint, ánh xạ các trường.</span></td><td><span class="en">Almost nothing: the data is already structured.</span><span class="vi">Gần như không có: dữ liệu đã có cấu trúc sẵn.</span></td></tr><tr><td class="k"><b><span class="en">2 · Plain HTML</span><span class="vi">2 · HTML tĩnh</span></b><br><span class="lvl" aria-label="difficulty 2 of 8">●●○○○○○○</span></td><td><span class="en">An event listing site; a company directory; a product catalog.</span><span class="vi">Một trang danh sách sự kiện; một danh bạ doanh nghiệp; một catalog sản phẩm.</span></td><td><span class="en">requests + an HTML parser.</span><span class="vi">requests + bộ đọc HTML.</span></td><td><span class="en">Layouts change, and one catalog serves two layouts (paid and free seller pages), so the parser checks which one it got first.</span><span class="vi">Giao diện thay đổi, và một catalog dùng hai giao diện (trang người bán trả phí và miễn phí), nên bộ đọc phải kiểm tra loại trang trước.</span></td></tr><tr><td class="k"><b><span class="en">3 · Hidden JSON</span><span class="vi">3 · JSON bị giấu</span></b><br><span class="lvl" aria-label="difficulty 3 of 8">●●●○○○○○</span></td><td><span class="en">A directory built with a JavaScript framework; the record sits inside script tags.</span><span class="vi">Một danh bạ dựng bằng framework JavaScript; hồ sơ nằm trong thẻ script.</span></td><td><span class="en">One plain request, then cut the object out by matching braces and repair it.</span><span class="vi">Một request thường, rồi cắt object ra bằng cách khớp dấu ngoặc và sửa lại.</span></td><td><span class="en">The visible HTML is not where the data is; selectors on it were fragile.</span><span class="vi">Dữ liệu không nằm ở phần HTML nhìn thấy; selector đặt trên đó rất dễ vỡ.</span></td></tr><tr><td class="k"><b><span class="en">4 · Needs a browser</span><span class="vi">4 · Cần trình duyệt</span></b><br><span class="lvl" aria-label="difficulty 4 of 8">●●●●○○○○</span></td><td><span class="en">A yellow-pages site; event organisers’ own websites, unknown in advance; one directory’s detail pages.</span><span class="vi">Một trang vàng; website riêng của các đơn vị tổ chức sự kiện, không biết trước; trang chi tiết của một danh bạ.</span></td><td><span class="en">Headless Playwright or Selenium, heavy resources blocked, browser restarted every 150 tasks.</span><span class="vi">Playwright hoặc Selenium headless, chặn tài nguyên nặng, khởi động lại trình duyệt sau mỗi 150 task.</span></td><td><span class="en">Content drawn by JavaScript, or no per-site parser possible. Slow, memory-hungry, 15–20 s timeouts.</span><span class="vi">Nội dung vẽ bằng JavaScript, hoặc không thể viết bộ đọc riêng cho từng trang. Chậm, tốn bộ nhớ, timeout 15–20 s.</span></td></tr><tr><td class="k"><b><span class="en">5 · Rate limited</span><span class="vi">5 · Bị giới hạn tốc độ</span></b><br><span class="lvl" aria-label="difficulty 5 of 8">●●●●●○○○</span></td><td><span class="en">Every source, to some degree.</span><span class="vi">Nguồn nào cũng vậy, ở mức độ khác nhau.</span></td><td><span class="en">Randomised pauses tuned per source, a longer pause every Nth request, one shared lock for the strictest.</span><span class="vi">Khoảng nghỉ ngẫu nhiên chỉnh riêng cho từng nguồn, nghỉ dài hơn sau mỗi N request, một khoá dùng chung cho nguồn khắt khe nhất.</span></td><td><span class="en">No site publishes its limit; it has to be found.</span><span class="vi">Không website nào công bố giới hạn; phải tự tìm ra.</span></td></tr><tr><td class="k"><b><span class="en">6 · Blocked per IP</span><span class="vi">6 · Bị chặn theo IP</span></b><br><span class="lvl" aria-label="difficulty 6 of 8">●●●●●●○○</span></td><td><span class="en">A directory that shows a captcha after too many requests; a directory that returns a challenge page.</span><span class="vi">Một danh bạ hiện captcha khi gửi quá nhiều request; một danh bạ trả về trang kiểm tra.</span></td><td><span class="en">Detect the block page, switch to a fresh proxy pool, back off, leave the URL pending.</span><span class="vi">Nhận diện trang chặn, chuyển sang pool proxy mới, lùi lại, để URL ở trạng thái chờ.</span></td><td><span class="en">Blocks often arrive as HTTP 200 with a different page, so status codes alone miss them.</span><span class="vi">Trang chặn thường trả về HTTP 200 với một trang khác, nên chỉ nhìn mã trạng thái sẽ bỏ sót.</span></td></tr><tr><td class="k"><b><span class="en">7 · Blocked by fingerprint</span><span class="vi">7 · Bị chặn theo mã máy</span></b><br><span class="lvl" aria-label="difficulty 7 of 8">●●●●●●●○</span></td><td><span class="en">A yellow-pages site and organisers’ websites that recognise an automated browser even behind a new proxy.</span><span class="vi">Một trang vàng và website của các đơn vị tổ chức nhận ra trình duyệt tự động kể cả khi đã đổi proxy.</span></td><td><span class="en">Every browser context gets its own consistent identity, automation markers are hidden, and the context is replaced on restart.</span><span class="vi">Mỗi context trình duyệt có một danh tính riêng và nhất quán, dấu hiệu tự động hoá được che đi, và context được thay mới khi khởi động lại.</span></td><td><span class="en">Changing the address is not enough when the browser itself is what gets recognised.</span><span class="vi">Đổi địa chỉ là chưa đủ khi chính trình duyệt mới là thứ bị nhận ra.</span></td></tr><tr><td class="k"><b><span class="en">8 · Behind a login</span><span class="vi">8 · Sau bước đăng nhập</span></b><br><span class="lvl" aria-label="difficulty 8 of 8">●●●●●●●●</span></td><td><span class="en">The search results of one product catalog.</span><span class="vi">Kết quả tìm kiếm của một catalog sản phẩm.</span></td><td><span class="en">A browser logs in only when the session expires; plain requests carry the cookies for everything else.</span><span class="vi">Trình duyệt chỉ đăng nhập khi phiên hết hạn; request thường mang cookie đó cho mọi việc còn lại.</span></td><td><span class="en">Sessions expire mid-run and many workers need the same login at once.</span><span class="vi">Phiên hết hạn giữa chừng và nhiều worker cùng cần một phiên đăng nhập.</span></td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Rate limits</span><span class="vi">Giới hạn tốc độ</span></span>
+    <h2><span class="en">Finding a limit nobody publishes</span><span class="vi">Tìm một giới hạn không ai công bố</span></h2>
+    <p class="en muted">No website says how fast you may go. Each source’s pace was found by testing: start slow, log the time of every request and every block signal, speed up while the logs stay clean, and step back as soon as blocks appear.</p>
+    <p class="vi muted">Không website nào nói bạn được đi nhanh đến đâu. Nhịp của mỗi nguồn được tìm ra bằng thử nghiệm: bắt đầu chậm, ghi lại thời gian của mọi request và mọi dấu hiệu bị chặn, tăng tốc khi log vẫn sạch, và lùi lại ngay khi bắt đầu bị chặn.</p>
+  </div>
+  <div class="flow" aria-label="Rate limit tuning">
+    <div class="step "><span class="n">1</span><b><span class="en">Start slow</span><span class="vi">Bắt đầu chậm</span></b><p><span class="en">A few seconds between requests, one worker</span><span class="vi">Vài giây giữa các request, một worker</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">2</span><b><span class="en">Measure</span><span class="vi">Đo</span></b><p><span class="en">Time per request, status, block pages, timeouts per proxy</span><span class="vi">Thời gian mỗi request, mã trạng thái, trang chặn, timeout theo proxy</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">3</span><b><span class="en">Speed up</span><span class="vi">Tăng tốc</span></b><p><span class="en">Shorter pauses, then more workers</span><span class="vi">Rút ngắn khoảng nghỉ, rồi thêm worker</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">4</span><b><span class="en">Settle</span><span class="vi">Chốt</span></b><p><span class="en">Keep a margin below the first sign of blocking</span><span class="vi">Giữ một khoảng an toàn dưới ngưỡng bắt đầu bị chặn</span></p></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span class="en">Pace that settled</span><span class="vi">Nhịp đã chốt</span></th><th><span class="en">Used for</span><span class="vi">Dùng cho</span></th><th><span class="en">Why that pace</span><span class="vi">Vì sao nhịp đó</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">0–1 s, 1–3 s every 20th</span><span class="vi">0–1 s, 1–3 s ở lần thứ 20</span></td><td><span class="en">Detail pages of a large company directory, 5 workers behind proxies</span><span class="vi">Trang chi tiết của một danh bạ lớn, 5 worker sau proxy</span></td><td><span class="en">Many proxies share the load, so each address stays slow even when the total is fast.</span><span class="vi">Nhiều proxy chia tải, nên mỗi địa chỉ vẫn chậm dù tổng thể nhanh.</span></td></tr><tr><td class="k"><span class="en">1–2 s, 3–4 s every 9th</span><span class="vi">1–2 s, 3–4 s ở lần thứ 9</span></td><td><span class="en">Most detail pages</span><span class="vi">Phần lớn trang chi tiết</span></td><td><span class="en">The default that held up across sources.</span><span class="vi">Mức mặc định đứng vững ở nhiều nguồn.</span></td></tr><tr><td class="k"><span class="en">2–3 s every request</span><span class="vi">2–3 s mỗi request</span></td><td><span class="en">Search and listing pages, the events API</span><span class="vi">Trang tìm kiếm và danh sách, API sự kiện</span></td><td><span class="en">Listing pages are heavier for the site and return many records anyway.</span><span class="vi">Trang danh sách nặng hơn với website, và đằng nào cũng trả về nhiều bản ghi.</span></td></tr><tr><td class="k"><span class="en">1–5 s, 5–10 s every 3rd</span><span class="vi">1–5 s, 5–10 s ở lần thứ 3</span></td><td><span class="en">Listing pages of the directory that shows captchas</span><span class="vi">Trang danh sách của danh bạ hay hiện captcha</span></td><td><span class="en">This site blocked quickly, so it got the widest, least regular pauses.</span><span class="vi">Website này chặn rất nhanh, nên nhận khoảng nghỉ rộng và thất thường nhất.</span></td></tr><tr><td class="k"><span class="en">One request at a time, 4–6 s</span><span class="vi">Mỗi lần một request, 4–6 s</span></td><td><span class="en">The logged-in search</span><span class="vi">Tìm kiếm cần đăng nhập</span></td><td><span class="en">Every request uses the same account, so a shared lock serialises all workers.</span><span class="vi">Mọi request dùng chung một tài khoản, nên một khoá chung tuần tự hoá mọi worker.</span></td></tr></tbody>
+  </table></div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">Pauses are random whole seconds, and every Nth request waits longer. A perfectly regular rhythm is the easiest pattern for a site to spot; small random gaps plus an occasional long break look much more like a person reading.</p>
+    <p class="vi">Khoảng nghỉ là số giây ngẫu nhiên, và cứ sau N request thì nghỉ lâu hơn. Nhịp đều tăm tắp là kiểu dễ bị website phát hiện nhất; khoảng nghỉ ngẫu nhiên nhỏ cộng thỉnh thoảng một lần nghỉ dài trông giống người đang đọc hơn nhiều.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Blocking</span><span class="vi">Bị chặn</span></span>
+    <h2><span class="en">Recognise the block, then change something</span><span class="vi">Nhận ra bị chặn, rồi thay đổi một thứ gì đó</span></h2>
+    <p class="en muted">A block rarely looks like an error. It is usually a normal-looking page with the wrong content. Every fetch checks for these signals and returns a named error, and the reaction is always the same idea: do not retry the same thing, change the address or slow down, and keep the URL pending so nothing is lost. Captchas are never solved; they are treated as a signal.</p>
+    <p class="vi muted">Bị chặn hiếm khi trông giống một lỗi. Thường đó là một trang trông bình thường nhưng sai nội dung. Mỗi lần tải đều kiểm tra các dấu hiệu này và trả về một lỗi có tên, và cách phản ứng luôn theo cùng một ý: không thử lại y hệt, đổi địa chỉ hoặc chậm lại, và giữ URL ở trạng thái chờ để không mất gì. Captcha không bao giờ được giải; nó được coi là một tín hiệu.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span class="en">Signal</span><span class="vi">Dấu hiệu</span></th><th><span class="en">How it is detected</span><span class="vi">Cách nhận ra</span></th><th><span class="en">Reaction</span><span class="vi">Phản ứng</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Captcha page</span><span class="vi">Trang captcha</span></td><td><span class="en">A known phrase from the captcha question appears in the page text</span><span class="vi">Một cụm từ của câu hỏi captcha xuất hiện trong nội dung trang</span></td><td><span class="en">Rebuild the proxy pool, continue with new addresses</span><span class="vi">Dựng lại pool proxy, tiếp tục với địa chỉ mới</span></td></tr><tr><td class="k"><span class="en">Challenge page</span><span class="vi">Trang kiểm tra</span></td><td><span class="en">The page loads but the expected data object is missing</span><span class="vi">Trang tải được nhưng object dữ liệu mong đợi không có</span></td><td><span class="en">Same as a captcha: new pool, URL stays pending</span><span class="vi">Như captcha: pool mới, URL vẫn chờ</span></td></tr><tr><td class="k"><span class="en">Login wall</span><span class="vi">Bức tường đăng nhập</span></td><td><span class="en">The endpoint answers “authentication failed”</span><span class="vi">Endpoint trả về “authentication failed”</span></td><td><span class="en">Log in again under the shared lock, reload cookies everywhere</span><span class="vi">Đăng nhập lại dưới khoá chung, nạp lại cookie ở mọi nơi</span></td></tr><tr><td class="k"><span class="en">Proxy error or timeout</span><span class="vi">Lỗi proxy hoặc timeout</span></td><td><span class="en">Connection, SSL or read-timeout errors</span><span class="vi">Lỗi kết nối, SSL hoặc hết thời gian đọc</span></td><td><span class="en">Health check: busy proxy → wait 1–3 s; dead proxy → rebuild</span><span class="vi">Kiểm tra sức khoẻ: proxy bận → chờ 1–3 s; proxy chết → dựng lại</span></td></tr><tr><td class="k"><span class="en">Silent reset</span><span class="vi">Bị đưa về trang đầu</span></td><td><span class="en">Asking for page 7 quietly returns page 1</span><span class="vi">Xin trang 7 nhưng âm thầm nhận về trang 1</span></td><td><span class="en">Treat the category as finished, move to the next one</span><span class="vi">Coi như danh mục đã hết, chuyển sang danh mục tiếp theo</span></td></tr><tr><td class="k"><span class="en">Degraded route</span><span class="vi">Đường truyền kém</span></td><td><span class="en">A test page comes back without compression through the proxy</span><span class="vi">Trang kiểm tra trả về không nén khi đi qua proxy</span></td><td><span class="en">Discard that browser context and open a new one</span><span class="vi">Bỏ context trình duyệt đó và mở context mới</span></td></tr></tbody>
+  </table></div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en"><strong>Blocked by fingerprint, not by address.</strong> Some sites recognise the browser itself: its user agent, screen size, language and the small signals an automated browser leaves behind. A new proxy does not help there. For those sources every browser context is created with its own identity (a desktop user agent, a common screen size, a language with the matching Accept-Language header), kept consistent for the life of that context; automation markers are hidden; and when a context is restarted it comes back with fresh cookies and a fresh identity. Plain requests always send a normal desktop browser user agent.</p>
+    <p class="vi"><strong>Bị chặn theo mã máy, không phải theo địa chỉ.</strong> Có website nhận ra chính trình duyệt: user agent, kích thước màn hình, ngôn ngữ và những dấu vết nhỏ mà trình duyệt tự động để lại. Đổi proxy không giúp được gì ở đây. Với các nguồn này, mỗi context trình duyệt được tạo với một danh tính riêng (user agent máy tính để bàn, kích thước màn hình phổ biến, ngôn ngữ kèm header Accept-Language tương ứng), giữ nhất quán suốt vòng đời của context đó; dấu hiệu tự động hoá được che đi; và khi context được khởi động lại, nó quay lại với cookie mới và danh tính mới. Request thường luôn gửi user agent của một trình duyệt máy tính bình thường.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Proxies</span><span class="vi">Proxy</span></span>
+    <h2><span class="en">A pool that heals itself</span><span class="vi">Một pool tự hồi phục</span></h2>
+    <p class="en muted">Sources that limit requests by address go through a pool of proxies. Each worker builds its own pool from the same list, so workers never fight over a session.</p>
+    <p class="vi muted">Những nguồn giới hạn request theo địa chỉ sẽ đi qua một pool proxy. Mỗi worker tự dựng pool của mình từ cùng một danh sách, nên các worker không bao giờ tranh nhau một session.</p>
+  </div>
+  <figure class="arch">
+    <svg viewBox="0 0 860 270" role="img" aria-label="Each proxy in a list becomes one HTTP session, kept in a round-robin queue; requests take the next session. On a proxy error a health check runs: if the proxy is alive the worker backs off 1 to 3 seconds, if it is dead the whole pool is rebuilt. A block page also triggers a rebuild." xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker><marker id="ahh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk hot" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="bx ex" x="15" y="40" width="150" height="64" rx="8"/><text class="t en" x="90.0" y="69.0" text-anchor="middle">Proxy list</text><text class="t vi" x="90.0" y="69.0" text-anchor="middle">Danh sách proxy</text><text class="s en" x="90.0" y="85.0" text-anchor="middle">loaded at start</text><text class="s vi" x="90.0" y="85.0" text-anchor="middle">nạp lúc khởi động</text><rect class="bx " x="195" y="40" width="175" height="64" rx="8"/><text class="t en" x="282.5" y="69.0" text-anchor="middle">One session per proxy</text><text class="t vi" x="282.5" y="69.0" text-anchor="middle">Mỗi proxy một session</text><text class="s en" x="282.5" y="85.0" text-anchor="middle">+ cookies when needed</text><text class="s vi" x="282.5" y="85.0" text-anchor="middle">+ cookie khi cần</text><rect class="bx st" x="400" y="40" width="200" height="64" rx="8"/><text class="t en" x="500.0" y="62.0" text-anchor="middle">Round-robin queue</text><text class="t vi" x="500.0" y="62.0" text-anchor="middle">Hàng đợi xoay vòng</text><text class="s en" x="500.0" y="78.0" text-anchor="middle">take the head, move it</text><text class="s vi" x="500.0" y="78.0" text-anchor="middle">lấy phần tử đầu, đưa</text><text class="s en" x="500.0" y="92.0" text-anchor="middle">to the back</text><text class="s vi" x="500.0" y="92.0" text-anchor="middle">xuống cuối</text><rect class="bx " x="630" y="40" width="215" height="64" rx="8"/><text class="t en" x="737.5" y="69.0" text-anchor="middle">Request</text><text class="t vi" x="737.5" y="69.0" text-anchor="middle">Request</text><text class="s en" x="737.5" y="85.0" text-anchor="middle">through the next session</text><text class="s vi" x="737.5" y="85.0" text-anchor="middle">qua session tiếp theo</text><path class="ar" d="M165 72 H195" marker-end="url(#ah)"/><path class="ar" d="M370 72 H400" marker-end="url(#ah)"/><path class="ar" d="M600 72 H630" marker-end="url(#ah)"/><rect class="bx " x="400" y="176" width="200" height="64" rx="8"/><text class="t en" x="500.0" y="198.0" text-anchor="middle">Health check</text><text class="t vi" x="500.0" y="198.0" text-anchor="middle">Kiểm tra sức khoẻ</text><text class="s en" x="500.0" y="214.0" text-anchor="middle">a neutral test URL,</text><text class="s vi" x="500.0" y="214.0" text-anchor="middle">một URL kiểm tra trung lập,</text><text class="s en" x="500.0" y="228.0" text-anchor="middle">5-second timeout</text><text class="s vi" x="500.0" y="228.0" text-anchor="middle">timeout 5 giây</text><rect class="bx st" x="630" y="176" width="215" height="64" rx="8"/><text class="t en" x="737.5" y="198.0" text-anchor="middle">Rebuild the pool</text><text class="t vi" x="737.5" y="198.0" text-anchor="middle">Dựng lại pool</text><text class="s en" x="737.5" y="214.0" text-anchor="middle">close all sessions,</text><text class="s vi" x="737.5" y="214.0" text-anchor="middle">đóng mọi session,</text><text class="s en" x="737.5" y="228.0" text-anchor="middle">create them again</text><text class="s vi" x="737.5" y="228.0" text-anchor="middle">tạo lại từ đầu</text><rect class="bx " x="170" y="176" width="200" height="64" rx="8"/><text class="t en" x="270.0" y="198.0" text-anchor="middle">Back off 1–3 s</text><text class="t vi" x="270.0" y="198.0" text-anchor="middle">Lùi lại 1–3 giây</text><text class="s en" x="270.0" y="214.0" text-anchor="middle">proxy alive, just busy:</text><text class="s vi" x="270.0" y="214.0" text-anchor="middle">proxy còn sống, chỉ đang bận:</text><text class="s en" x="270.0" y="228.0" text-anchor="middle">skip and continue</text><text class="s vi" x="270.0" y="228.0" text-anchor="middle">bỏ qua rồi chạy tiếp</text><path class="ar hot" d="M737 104 V140 H500 V176" marker-end="url(#ahh)"/><text class="al en" x="618" y="132" text-anchor="middle">proxy error</text><text class="al vi" x="618" y="132" text-anchor="middle">lỗi proxy</text><path class="ar" d="M600 208 H630" marker-end="url(#ah)"/><text class="al en" x="615" y="200" text-anchor="middle">dead</text><text class="al vi" x="615" y="200" text-anchor="middle">chết</text><path class="ar" d="M400 208 H370" marker-end="url(#ah)"/><text class="al en" x="385" y="200" text-anchor="middle">alive</text><text class="al vi" x="385" y="200" text-anchor="middle">sống</text><path class="ar dash" d="M790 104 V176" marker-end="url(#ah)"/><text class="al en" x="796" y="145">block page</text><text class="al vi" x="796" y="145">trang chặn</text></svg>
+    <div class="arch-key">
+      <span><i style="background:var(--accent-soft);border-color:var(--accent)"></i><span class="en">Stored data</span><span class="vi">Dữ liệu lưu trữ</span></span>
+      <span><i style="border-style:dashed;border-color:var(--muted)"></i><span class="en">Outside service or user</span><span class="vi">Dịch vụ bên ngoài hoặc người dùng</span></span>
+    </div>
+    <figcaption><span class="en">The health check separates two failures that look the same: a busy proxy (wait and move on) and a dead one (rebuild). Without it, every timeout would either be ignored or rebuild the pool for no reason.</span><span class="vi">Bước kiểm tra sức khoẻ tách hai loại lỗi trông giống nhau: proxy đang bận (chờ rồi đi tiếp) và proxy đã chết (dựng lại). Không có nó, mọi timeout hoặc sẽ bị bỏ qua, hoặc sẽ dựng lại pool một cách vô ích.</span></figcaption>
+  </figure>
+  <ul class="clean col" style="margin-top:18px">
+    <li><span class="en"><strong>Sessions, not raw requests.</strong> One reusable HTTP session per proxy keeps connections and cookies alive between requests; cookies, when a source needs them, are attached to every session in the pool.</span><span class="vi"><strong>Session, không phải request rời rạc.</strong> Mỗi proxy một session HTTP dùng lại được, giữ kết nối và cookie giữa các request; khi nguồn cần cookie, cookie được gắn vào mọi session trong pool.</span></li>
+    <li><span class="en"><strong>Browser traffic is metered.</strong> For the browser-based source, every page load logs its total bytes, and a new browser context is accepted only if a test page comes back compressed. An uncompressed response means more paid traffic for the same page.</span><span class="vi"><strong>Lưu lượng của trình duyệt được đo.</strong> Với nguồn dùng trình duyệt, mỗi lần tải trang ghi lại tổng số byte, và một context trình duyệt mới chỉ được dùng nếu trang kiểm tra trả về dạng nén. Phản hồi không nén nghĩa là tốn thêm lưu lượng trả tiền cho cùng một trang.</span></li>
+    <li><span class="en"><strong>Polite pauses.</strong> Every request waits a random 1–2 seconds, with a longer 3–4 second pause every ninth or tenth request. Going slower on purpose costs less than being blocked.</span><span class="vi"><strong>Nghỉ một cách lịch sự.</strong> Mỗi request chờ ngẫu nhiên 1–2 giây, và cứ khoảng request thứ chín hoặc mười thì nghỉ lâu hơn 3–4 giây. Cố ý chậm lại thì rẻ hơn là bị chặn.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Login and cookies</span><span class="vi">Đăng nhập và cookie</span></span>
+    <h2><span class="en">One login, shared by every worker</span><span class="vi">Đăng nhập một lần, mọi worker dùng chung</span></h2>
+    <p class="en muted">Only one source, a product catalog, needed a logged-in session, and only for its search results. The session expires, so the pipeline has to notice, log in again and share the new cookies without stopping the other workers.</p>
+    <p class="vi muted">Chỉ một nguồn, một catalog sản phẩm, cần phiên đăng nhập, và chỉ cho kết quả tìm kiếm. Phiên này hết hạn, nên pipeline phải tự nhận ra, đăng nhập lại và chia sẻ cookie mới mà không làm dừng các worker khác.</p>
+  </div>
+  <div class="flow" aria-label="Cookie refresh">
+    <div class="step "><span class="n">1</span><b><span class="en">Detect</span><span class="vi">Phát hiện</span></b><p><span class="en">The response says authentication failed</span><span class="vi">Phản hồi báo xác thực thất bại</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">2</span><b><span class="en">Lock</span><span class="vi">Khoá</span></b><p><span class="en">Take the lock shared by all workers</span><span class="vi">Giữ khoá dùng chung cho mọi worker</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">3</span><b><span class="en">Log in</span><span class="vi">Đăng nhập</span></b><p><span class="en">A headless browser runs the login, including the emailed one-time code</span><span class="vi">Trình duyệt headless chạy bước đăng nhập, kể cả mã dùng một lần gửi qua email</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">4</span><b><span class="en">Write</span><span class="vi">Ghi</span></b><p><span class="en">Save the cookies to a shared file</span><span class="vi">Lưu cookie vào một file dùng chung</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">5</span><b><span class="en">Reload</span><span class="vi">Nạp lại</span></b><p><span class="en">Rebuild the pool with the new cookies, release the lock</span><span class="vi">Dựng lại pool với cookie mới, nhả khoá</span></p></div>
+  </div>
+  <div class="gate"><div><b><span class="en">File as the shared channel</span><span class="vi">File là kênh dùng chung</span></b><span><span class="en">Before each task, every worker compares the cookie file’s modified time with the last one it loaded. A newer file means: reload the cookies into its own pool. No extra service is needed.</span><span class="vi">Trước mỗi task, mọi worker so thời điểm sửa đổi của file cookie với lần nạp gần nhất. File mới hơn nghĩa là: nạp lại cookie vào pool của mình. Không cần thêm dịch vụ nào.</span></span></div><div><b><span class="en">One login at a time</span><span class="vi">Mỗi lần chỉ một người đăng nhập</span></b><span><span class="en">The lock makes sure only one worker logs in, and nobody sends requests while a login is in progress.</span><span class="vi">Khoá đảm bảo chỉ một worker đăng nhập, và không ai gửi request trong lúc đang đăng nhập.</span></span></div><div><b><span class="en">Slow on purpose</span><span class="vi">Cố ý chậm</span></b><span><span class="en">The same lock serialises search requests for this source: one at a time, with a 4–6 second pause.</span><span class="vi">Cũng khoá đó tuần tự hoá request tìm kiếm của nguồn này: mỗi lần một request, nghỉ 4–6 giây.</span></span></div></div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Multiprocessing</span><span class="vi">Multiprocessing</span></span>
+    <h2><span class="en">One worker template for every source</span><span class="vi">Một mẫu worker cho mọi nguồn</span></h2>
+    <p class="en muted">Every detail stage uses the same three functions: a parent that fills a queue, workers that own their resources, and a job that returns either data or a named error. Only the fetch function changes per source.</p>
+    <p class="vi muted">Mọi giai đoạn chi tiết dùng cùng ba hàm: một tiến trình cha đổ task vào hàng đợi, các worker tự giữ tài nguyên của mình, và một job trả về dữ liệu hoặc một lỗi có tên. Chỉ có hàm tải trang là khác nhau giữa các nguồn.</p>
+  </div>
+  <figure class="arch">
+    <svg viewBox="0 0 860 350" role="img" aria-label="The parent process loads pending rows into a queue with one stop signal per worker and starts N spawned workers. Each worker owns its database connection and proxy pool or browser, takes tasks until the stop signal and runs the job. Success writes and marks the row; a transport error repairs the resource and leaves the row pending; a content error marks the row as an error." xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker><marker id="ahh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk hot" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="lane" x="5" y="8" width="255" height="334" rx="12"/><text class="lb en" x="17" y="24">PARENT PROCESS</text><text class="lb vi" x="17" y="24">TIẾN TRÌNH CHA</text><rect class="lane" x="275" y="8" width="300" height="334" rx="12"/><text class="lb en" x="287" y="24">EACH WORKER PROCESS</text><text class="lb vi" x="287" y="24">MỖI TIẾN TRÌNH WORKER</text><rect class="lane" x="595" y="8" width="260" height="334" rx="12"/><text class="lb en" x="607" y="24">OUTCOME OF ONE TASK</text><text class="lb vi" x="607" y="24">KẾT QUẢ CỦA MỘT TASK</text><rect class="bx st" x="22" y="40" width="220" height="64" rx="8"/><text class="t en" x="132.0" y="69.0" text-anchor="middle">Pending rows</text><text class="t vi" x="132.0" y="69.0" text-anchor="middle">Dòng đang chờ</text><text class="s en" x="132.0" y="85.0" text-anchor="middle">not crawled, no status yet</text><text class="s vi" x="132.0" y="85.0" text-anchor="middle">chưa crawl, chưa có trạng thái</text><rect class="bx " x="22" y="150" width="220" height="64" rx="8"/><text class="t en" x="132.0" y="172.0" text-anchor="middle">Task queue</text><text class="t vi" x="132.0" y="172.0" text-anchor="middle">Hàng đợi task</text><text class="s en" x="132.0" y="188.0" text-anchor="middle">rows + one stop signal</text><text class="s vi" x="132.0" y="188.0" text-anchor="middle">các dòng + một tín hiệu dừng</text><text class="s en" x="132.0" y="202.0" text-anchor="middle">per worker</text><text class="s vi" x="132.0" y="202.0" text-anchor="middle">cho mỗi worker</text><rect class="bx " x="22" y="262" width="220" height="70" rx="8"/><text class="t en" x="132.0" y="287.0" text-anchor="middle">Start N workers</text><text class="t vi" x="132.0" y="287.0" text-anchor="middle">Khởi động N worker</text><text class="s en" x="132.0" y="303.0" text-anchor="middle">fresh interpreters (spawn)</text><text class="s vi" x="132.0" y="303.0" text-anchor="middle">trình thông dịch mới (spawn)</text><text class="s en" x="132.0" y="317.0" text-anchor="middle">Ctrl+C: terminate + join</text><text class="s vi" x="132.0" y="317.0" text-anchor="middle">Ctrl+C: dừng + chờ đóng</text><rect class="bx " x="292" y="40" width="266" height="64" rx="8"/><text class="t en" x="425.0" y="62.0" text-anchor="middle">Own resources</text><text class="t vi" x="425.0" y="62.0" text-anchor="middle">Tài nguyên riêng</text><text class="s en" x="425.0" y="78.0" text-anchor="middle">DB connection</text><text class="s vi" x="425.0" y="78.0" text-anchor="middle">kết nối database</text><text class="s en" x="425.0" y="92.0" text-anchor="middle">proxy pool or browser</text><text class="s vi" x="425.0" y="92.0" text-anchor="middle">pool proxy hoặc trình duyệt</text><rect class="bx " x="292" y="150" width="266" height="64" rx="8"/><text class="t en" x="425.0" y="179.0" text-anchor="middle">Take the next task</text><text class="t vi" x="425.0" y="179.0" text-anchor="middle">Lấy task tiếp theo</text><text class="s en" x="425.0" y="195.0" text-anchor="middle">until the stop signal</text><text class="s vi" x="425.0" y="195.0" text-anchor="middle">tới khi gặp tín hiệu dừng</text><rect class="bx " x="292" y="262" width="266" height="70" rx="8"/><text class="t en" x="425.0" y="287.0" text-anchor="middle">Run the job</text><text class="t vi" x="425.0" y="287.0" text-anchor="middle">Chạy job</text><text class="s en" x="425.0" y="303.0" text-anchor="middle">fetch → data or a named error</text><text class="s vi" x="425.0" y="303.0" text-anchor="middle">tải → dữ liệu hoặc một lỗi có tên</text><text class="s en" x="425.0" y="317.0" text-anchor="middle">restart browser every N tasks</text><text class="s vi" x="425.0" y="317.0" text-anchor="middle">khởi động lại trình duyệt sau N task</text><rect class="bx st" x="612" y="40" width="226" height="64" rx="8"/><text class="t en" x="725.0" y="62.0" text-anchor="middle">Success</text><text class="t vi" x="725.0" y="62.0" text-anchor="middle">Thành công</text><text class="s en" x="725.0" y="78.0" text-anchor="middle">write records · mark done</text><text class="s vi" x="725.0" y="78.0" text-anchor="middle">ghi bản ghi · đánh dấu xong</text><text class="s en" x="725.0" y="92.0" text-anchor="middle">commit</text><text class="s vi" x="725.0" y="92.0" text-anchor="middle">commit</text><rect class="bx " x="612" y="150" width="226" height="64" rx="8"/><text class="t en" x="725.0" y="172.0" text-anchor="middle">Transport error</text><text class="t vi" x="725.0" y="172.0" text-anchor="middle">Lỗi đường truyền</text><text class="s en" x="725.0" y="188.0" text-anchor="middle">repair pool or browser</text><text class="s vi" x="725.0" y="188.0" text-anchor="middle">sửa pool hoặc trình duyệt</text><text class="s en" x="725.0" y="202.0" text-anchor="middle">row stays pending</text><text class="s vi" x="725.0" y="202.0" text-anchor="middle">dòng vẫn ở trạng thái chờ</text><rect class="bx st" x="612" y="262" width="226" height="70" rx="8"/><text class="t en" x="725.0" y="287.0" text-anchor="middle">Content error</text><text class="t vi" x="725.0" y="287.0" text-anchor="middle">Lỗi nội dung</text><text class="s en" x="725.0" y="303.0" text-anchor="middle">mark the row Error</text><text class="s vi" x="725.0" y="303.0" text-anchor="middle">đánh dấu dòng là Error</text><text class="s en" x="725.0" y="317.0" text-anchor="middle">+ message</text><text class="s vi" x="725.0" y="317.0" text-anchor="middle">+ thông báo</text><path class="ar" d="M132 104 V150" marker-end="url(#ah)"/><path class="ar" d="M132 214 V262" marker-end="url(#ah)"/><path class="ar hot" d="M242 296 H264 V72 H292" marker-end="url(#ahh)"/><path class="ar" d="M425 104 V150" marker-end="url(#ah)"/><path class="ar" d="M425 214 V262" marker-end="url(#ah)"/><path class="ar" d="M558 296 H585 V72 H612" marker-end="url(#ah)"/><path class="ar" d="M585 182 H612" marker-end="url(#ah)"/><path class="ar" d="M585 296 H612" marker-end="url(#ah)"/></svg>
+    <div class="arch-key">
+      <span><i style="background:var(--accent-soft);border-color:var(--accent)"></i><span class="en">Stored data</span><span class="vi">Dữ liệu lưu trữ</span></span>
+      <span><i style="border-style:dashed;border-color:var(--muted)"></i><span class="en">Outside service or user</span><span class="vi">Dịch vụ bên ngoài hoặc người dùng</span></span>
+    </div>
+    <figcaption><span class="en">A transport error never marks the row, so the next run simply picks it up again. That one rule replaced a separate retry system.</span><span class="vi">Lỗi đường truyền không bao giờ đánh dấu dòng, nên lần chạy sau sẽ tự lấy lại dòng đó. Chỉ một luật này đã thay cho cả một hệ thống retry riêng.</span></figcaption>
+  </figure>
+  <ul class="clean col" style="margin-top:18px">
+    <li><span class="en"><strong>Spawn, not fork.</strong> Each worker starts from a fresh interpreter and opens its own database connection, so no socket or connection is shared by accident between processes.</span><span class="vi"><strong>Spawn, không phải fork.</strong> Mỗi worker khởi động từ một trình thông dịch mới và tự mở kết nối database, nên không có socket hay kết nối nào vô tình bị dùng chung giữa các tiến trình.</span></li>
+    <li><span class="en"><strong>One stop signal per worker.</strong> The parent puts one empty task per worker at the end of the queue; each worker exits when it reads one. Ctrl+C in the parent terminates and joins every worker.</span><span class="vi"><strong>Mỗi worker một tín hiệu dừng.</strong> Tiến trình cha đặt một task rỗng cho mỗi worker ở cuối hàng đợi; worker thoát khi đọc được nó. Ctrl+C ở tiến trình cha sẽ dừng và chờ mọi worker đóng lại.</span></li>
+    <li><span class="en"><strong>Processes, not threads.</strong> Parsing is CPU-heavy, browsers leak memory, and each worker needs its own connection. Processes give real parallelism and keep one crash from taking the others down.</span><span class="vi"><strong>Tiến trình, không phải luồng.</strong> Đọc trang tốn CPU, trình duyệt rò rỉ bộ nhớ, và mỗi worker cần kết nối riêng. Tiến trình cho song song thật và giữ một sự cố không kéo theo các worker khác.</span></li>
+    <li><span class="en"><strong>Recycle heavy resources.</strong> Selenium workers restart their browser every 150 tasks, which keeps memory flat over runs that last days.</span><span class="vi"><strong>Làm mới tài nguyên nặng.</strong> Worker dùng Selenium khởi động lại trình duyệt sau mỗi 150 task, giúp bộ nhớ không phình lên trong những lần chạy kéo dài nhiều ngày.</span></li>
+  </ul>
+</section>
+
+<section data-add="speed">
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Speed</span><span class="vi">Tốc độ</span></span>
+    <h2><span class="en">What one request costs, and what sets the pace</span><span class="vi">Một request tốn gì, và cái gì quyết định tốc độ</span></h2>
+    <p class="en muted">Parsing and saving take milliseconds and the network is capped by a timeout. In practice the deliberate pause before each request sets the speed of a source, so speed is chosen, not hoped for.</p>
+    <p class="vi muted">Đọc và lưu chỉ mất vài mili giây, còn mạng bị giới hạn bởi timeout. Trên thực tế, khoảng nghỉ cố ý trước mỗi request mới quyết định tốc độ của một nguồn, nên tốc độ là thứ được chọn, không phải thứ phải cầu may.</p>
+  </div>
+  <figure class="arch">
+    <svg viewBox="0 0 860 236" role="img" aria-label="One request: a polite pause of 1 to 2 seconds, the next proxy session, the request and response with a 10 to 18 second timeout, parsing in milliseconds, and a save with commit. On a timeout or error the request is retried up to three times with a 2 to 5 second wait." xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker><marker id="ahh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk hot" d="M0,0 L10,5 L0,10 z"/></marker></defs><text class="lb en" x="20" y="22">ONE REQUEST, LEFT TO RIGHT · NOT TO SCALE</text><text class="lb vi" x="20" y="22">MỘT REQUEST, TỪ TRÁI SANG PHẢI · KHÔNG THEO TỈ LỆ</text><rect class="bx ex" x="20" y="40" width="250" height="60" rx="8"/><text class="t en" x="145.0" y="67.0" text-anchor="middle">Polite pause</text><text class="t vi" x="145.0" y="67.0" text-anchor="middle">Nghỉ lịch sự</text><text class="s en" x="145.0" y="83.0" text-anchor="middle">1–2 s, longer every 9th</text><text class="s vi" x="145.0" y="83.0" text-anchor="middle">1–2 s, lâu hơn ở lần thứ 9</text><rect class="bx " x="278" y="40" width="110" height="60" rx="8"/><text class="t en" x="333.0" y="67.0" text-anchor="middle">Next session</text><text class="t vi" x="333.0" y="67.0" text-anchor="middle">Session kế</text><text class="s en" x="333.0" y="83.0" text-anchor="middle">round robin</text><text class="s vi" x="333.0" y="83.0" text-anchor="middle">xoay vòng</text><rect class="bx st" x="396" y="40" width="220" height="60" rx="8"/><text class="t en" x="506.0" y="67.0" text-anchor="middle">Request + response</text><text class="t vi" x="506.0" y="67.0" text-anchor="middle">Gửi + nhận</text><text class="s en" x="506.0" y="83.0" text-anchor="middle">timeout 10–18 s</text><text class="s vi" x="506.0" y="83.0" text-anchor="middle">timeout 10–18 s</text><rect class="bx " x="624" y="40" width="100" height="60" rx="8"/><text class="t en" x="674.0" y="67.0" text-anchor="middle">Parse</text><text class="t vi" x="674.0" y="67.0" text-anchor="middle">Đọc</text><text class="s en" x="674.0" y="83.0" text-anchor="middle">milliseconds</text><text class="s vi" x="674.0" y="83.0" text-anchor="middle">mili giây</text><rect class="bx st" x="732" y="40" width="108" height="60" rx="8"/><text class="t en" x="786.0" y="67.0" text-anchor="middle">Save</text><text class="t vi" x="786.0" y="67.0" text-anchor="middle">Lưu</text><text class="s en" x="786.0" y="83.0" text-anchor="middle">write + commit</text><text class="s vi" x="786.0" y="83.0" text-anchor="middle">ghi + commit</text><rect class="bx " x="396" y="160" width="220" height="60" rx="8"/><text class="t en" x="506.0" y="187.0" text-anchor="middle">On error</text><text class="t vi" x="506.0" y="187.0" text-anchor="middle">Khi lỗi</text><text class="s en" x="506.0" y="203.0" text-anchor="middle">retry up to 3×, wait 2–5 s</text><text class="s vi" x="506.0" y="203.0" text-anchor="middle">thử lại tối đa 3 lần, chờ 2–5 s</text><path class="ar hot" d="M506 100 V160" marker-end="url(#ahh)"/><text class="al en" x="512" y="134">timeout / error</text><text class="al vi" x="512" y="134">timeout / lỗi</text><path class="ar dash" d="M396 190 H145 V100" marker-end="url(#ah)"/><text class="al en" x="270" y="182" text-anchor="middle">next try</text><text class="al vi" x="270" y="182" text-anchor="middle">lần thử tiếp</text></svg>
+    <figcaption><span class="en">Where timeouts are set, they are short: 10–18 seconds for plain requests, 15 seconds for a browser page load, 5 seconds for a proxy health check. A slow answer counts as a failure.</span><span class="vi">Ở những nơi có đặt timeout, timeout đều ngắn: 10–18 giây cho request thường, 15 giây cho một lần tải trang bằng trình duyệt, 5 giây cho kiểm tra sức khoẻ proxy. Phản hồi chậm được tính là thất bại.</span></figcaption>
+  </figure>
+  <div class="table-wrap" style="margin-top:18px"><table>
+    <thead><tr><th><span class="en">Pause setting</span><span class="vi">Thiết lập nghỉ</span></th><th><span class="en">Average pause</span><span class="vi">Nghỉ trung bình</span></th><th><span class="en">Ceiling per worker</span><span class="vi">Trần mỗi worker</span></th><th><span class="en">Ceiling for the source</span><span class="vi">Trần cho cả nguồn</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Typical: 1–2 s, 3–4 s every 9th</span><span class="vi">Phổ biến: 1–2 s, 3–4 s ở lần thứ 9</span></td><td>≈ 1.7 s</td><td><span class="en">≈ 2,100 requests/hour</span><span class="vi">≈ 2.100 request/giờ</span></td><td><span class="en">× workers (2–3)</span><span class="vi">× số worker (2–3)</span></td></tr><tr><td class="k"><span class="en">Fastest directory: 0–1 s, 1–3 s every 20th</span><span class="vi">Danh bạ nhanh nhất: 0–1 s, 1–3 s ở lần thứ 20</span></td><td>≈ 0.6 s</td><td><span class="en">≈ 6,000 requests/hour</span><span class="vi">≈ 6.000 request/giờ</span></td><td><span class="en">× 5 workers ≈ 30,000/hour</span><span class="vi">× 5 worker ≈ 30.000/giờ</span></td></tr><tr><td class="k"><span class="en">Logged-in search: 2–3 s + 4–6 s inside one lock</span><span class="vi">Tìm kiếm cần đăng nhập: 2–3 s + 4–6 s trong một khoá</span></td><td>≈ 7.5 s</td><td><span class="en">—</span><span class="vi">—</span></td><td><span class="en">≈ 480 requests/hour, whatever the number of workers</span><span class="vi">≈ 480 request/giờ, dù có bao nhiêu worker</span></td></tr></tbody>
+  </table></div>
+  <p class="col muted" style="font-size:.9rem;margin-top:10px"><span class="en">Ceilings are computed from the pause settings alone, before any network time, so real rates are lower. Still, they plan a run: a backlog of 100,000 detail pages on a typical source with 3 workers needs at least about 16 hours.</span><span class="vi">Các mức trần được tính chỉ từ thiết lập nghỉ, chưa tính thời gian mạng, nên tốc độ thật sẽ thấp hơn. Dù vậy, chúng đủ để lên kế hoạch: 100.000 trang chi tiết ở một nguồn phổ biến với 3 worker cần ít nhất khoảng 16 giờ.</span></p>
+</section>
+
+<section data-add="scale">
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Scaling</span><span class="vi">Khả năng mở rộng</span></span>
+    <h2><span class="en">What grows by adding workers, and what does not</span><span class="vi">Thứ gì tăng khi thêm worker, và thứ gì không</span></h2>
+    <p class="en muted">Total speed is roughly workers × 3,600 ÷ (pause + response time) pages per hour. Each worker spreads its requests over the whole proxy list, so the load on any one address stays at the polite rate even when the total grows.</p>
+    <p class="vi muted">Tốc độ tổng xấp xỉ số worker × 3.600 ÷ (thời gian nghỉ + thời gian phản hồi) trang mỗi giờ. Mỗi worker rải request của mình lên toàn bộ danh sách proxy, nên tải trên từng địa chỉ vẫn giữ ở mức lịch sự kể cả khi tổng tăng lên.</p>
+  </div>
+  <div class="table-wrap" style="margin-top:18px"><table>
+    <thead><tr><th><span class="en">Dimension</span><span class="vi">Chiều mở rộng</span></th><th><span class="en">How it scales</span><span class="vi">Mở rộng thế nào</span></th><th><span class="en">Limit</span><span class="vi">Giới hạn</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Workers per source</span><span class="vi">Worker mỗi nguồn</span></td><td><span class="en">Add processes; 2 to 5 were used</span><span class="vi">Thêm tiến trình; đã dùng từ 2 đến 5</span></td><td><span class="en">A database connection each; browser workers stay at 2 for memory</span><span class="vi">Mỗi worker một kết nối database; worker trình duyệt giữ ở mức 2 vì bộ nhớ</span></td></tr><tr><td class="k"><span class="en">Proxies</span><span class="vi">Proxy</span></td><td><span class="en">A longer list lowers the rate per address</span><span class="vi">Danh sách dài hơn làm giảm tốc độ trên mỗi địa chỉ</span></td><td><span class="en">One dead proxy triggers a rebuild of the whole pool</span><span class="vi">Một proxy chết sẽ kích hoạt việc dựng lại cả pool</span></td></tr><tr><td class="k"><span class="en">Machines</span><span class="vi">Máy</span></td><td><span class="en">Limit and offset windows split one backlog across machines by hand</span><span class="vi">Cửa sổ limit và offset chia một danh sách tồn đọng cho nhiều máy, làm thủ công</span></td><td><span class="en">Rows are not claimed atomically yet</span><span class="vi">Dòng chưa được nhận một cách nguyên tử</span></td></tr><tr><td class="k"><span class="en">Logged-in source</span><span class="vi">Nguồn cần đăng nhập</span></td><td><span class="en">Does not scale with workers by design</span><span class="vi">Cố ý không mở rộng theo số worker</span></td><td><span class="en">One lock, one account, about 480 requests per hour</span><span class="vi">Một khoá, một tài khoản, khoảng 480 request mỗi giờ</span></td></tr></tbody>
+  </table></div>
+  <ul class="clean col" style="margin-top:16px">
+    <li><span class="en"><strong>Next step for more machines.</strong> Claim rows atomically (an “in progress” status taken with a skip-locked query) so workers on any machine share one queue.</span><span class="vi"><strong>Bước tiếp theo để chạy nhiều máy.</strong> Nhận dòng một cách nguyên tử (trạng thái “đang xử lý” lấy bằng câu truy vấn skip-locked) để worker trên mọi máy dùng chung một hàng đợi.</span></li>
+    <li><span class="en"><strong>Next step for more speed per machine.</strong> Async HTTP with a per-site rate limiter: one process keeps hundreds of requests in flight while the pace per site stays polite.</span><span class="vi"><strong>Bước tiếp theo để nhanh hơn trên mỗi máy.</strong> HTTP bất đồng bộ kèm bộ giới hạn tốc độ theo từng website: một tiến trình giữ hàng trăm request cùng lúc mà nhịp trên mỗi website vẫn lịch sự.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Storage</span><span class="vi">Lưu trữ</span></span>
+    <h2><span class="en">Store progress, not just results</span><span class="vi">Lưu tiến độ, không chỉ lưu kết quả</span></h2>
+    <p class="en muted">Runs last days and get interrupted. Everything is stored so that a restart continues instead of starting over, and a parser fix does not need a new crawl.</p>
+    <p class="vi muted">Mỗi lần chạy kéo dài nhiều ngày và hay bị gián đoạn. Mọi thứ được lưu sao cho chạy lại thì tiếp tục, không phải làm lại từ đầu, và sửa bộ đọc thì không cần crawl lại.</p>
+  </div>
+  <div class="layers"><div class="layer"><b><span class="en">URL inventory</span><span class="vi">Kho URL</span></b><span><span class="en">One row per URL with source, type (listing page, company, product), crawled flag, status, last error and the raw JSON. The URL is unique, so queuing the same page twice is ignored at insert.</span><span class="vi">Mỗi URL một dòng gồm nguồn, loại (trang danh sách, công ty, sản phẩm), cờ đã crawl, trạng thái, lỗi gần nhất và JSON gốc. URL là duy nhất, nên xếp cùng một trang hai lần sẽ bị bỏ qua ngay lúc ghi.</span></span></div><div class="layer"><b><span class="en">Records</span><span class="vi">Bản ghi</span></b><span><span class="en">Companies, buyers, products with price tiers and attributes, reviews, events and articles. Each is matched by its source URL first, so a re-run updates instead of duplicating.</span><span class="vi">Doanh nghiệp, người mua, sản phẩm kèm bậc giá và thuộc tính, đánh giá, sự kiện và bài viết. Mỗi bản ghi được đối chiếu theo URL nguồn trước, nên chạy lại thì cập nhật chứ không nhân đôi.</span></span></div><div class="layer"><b><span class="en">Cheap insert</span><span class="vi">Ghi rẻ</span></b><span><span class="en">Records are saved with search sync, category prediction and attribute extraction switched off; those run later as separate jobs.</span><span class="vi">Bản ghi được lưu với việc đồng bộ search, dự đoán danh mục và trích thuộc tính đều tắt; các bước đó chạy sau thành job riêng.</span></span></div><div class="layer"><b><span class="en">Files</span><span class="vi">File</span></b><span><span class="en">Seeds and listings as CSV; event details as JSON Lines, replayed from a byte-offset checkpoint saved every 5 events; raw HTML kept for some sources; images downloaded and re-hosted.</span><span class="vi">Hạt giống và danh sách dạng CSV; chi tiết sự kiện dạng JSON Lines, chạy lại từ checkpoint theo vị trí byte được lưu sau mỗi 5 sự kiện; giữ HTML gốc cho một số nguồn; ảnh được tải về và lưu lại trên hệ thống.</span></span></div><div class="layer"><b><span class="en">Resume rules</span><span class="vi">Luật chạy tiếp</span></b><span><span class="en">Pending rows are picked up again; failed rows keep their error; a keyword or city checkpoint skips what earlier runs already covered.</span><span class="vi">Dòng đang chờ sẽ được lấy lại; dòng lỗi giữ lại thông báo lỗi; checkpoint theo từ khoá hoặc thành phố bỏ qua phần mà các lần chạy trước đã làm.</span></span></div><div class="layer"><b><span class="en">Event dedupe</span><span class="vi">Chống trùng sự kiện</span></b><span><span class="en">The same trade show appears under several names. Names are hashed with MinHash (4-character shingles, 512 hashes, 128 bands) into the search index; candidates in the same country are confirmed with a fuzzy score of 93 or more, and only one article is kept per edition.</span><span class="vi">Cùng một hội chợ xuất hiện dưới nhiều tên. Tên được băm bằng MinHash (cụm 4 ký tự, 512 hash, 128 băng) vào search index; ứng viên cùng quốc gia được xác nhận khi điểm giống từ 93 trở lên, và mỗi kỳ tổ chức chỉ giữ một bài.</span></span></div></div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Decisions and trade-offs</span><span class="vi">Quyết định và đánh đổi</span></span>
+    <h2><span class="en">What I chose, and why</span><span class="vi">Tôi đã chọn gì, và vì sao</span></h2>
+  </div>
+  <div class="decisions">
+    <div class="dec"><h3><span class="en">One pipeline per source</span><span class="vi">Mỗi nguồn một pipeline</span></h3><p><span class="en">Sites change independently. A small pipeline per site means a broken layout stops one source, not all of them, and a new source is a new file, not a change to a shared framework.</span><span class="vi">Các website thay đổi độc lập với nhau. Mỗi website một pipeline nhỏ nghĩa là một giao diện hỏng chỉ dừng một nguồn, không phải tất cả, và thêm nguồn mới là thêm một file, không phải sửa một framework dùng chung.</span></p></div>
+    <div class="dec"><h3><span class="en">A shared fetch layer anyway</span><span class="vi">Nhưng vẫn có lớp tải trang dùng chung</span></h3><p><span class="en">Proxy pools, health checks, retries and the worker template are written once and reused, because those problems are the same everywhere.</span><span class="vi">Pool proxy, kiểm tra sức khoẻ, retry và mẫu worker được viết một lần rồi dùng lại, vì những vấn đề đó ở đâu cũng giống nhau.</span></p></div>
+    <div class="dec"><h3><span class="en">The table is the queue</span><span class="vi">Bảng chính là hàng đợi</span></h3><p><span class="en">Using the URL inventory as the work queue costs a little speed but gives visibility and resume for free: progress is a query, and restarting is running the same command again.</span><span class="vi">Dùng kho URL làm hàng đợi công việc chậm hơn một chút, nhưng có sẵn khả năng quan sát và chạy tiếp: tiến độ chỉ là một câu truy vấn, và chạy lại chỉ là gõ lại cùng một lệnh.</span></p></div>
+    <div class="dec"><h3><span class="en">Run by hand, on purpose</span><span class="vi">Cố ý chạy thủ công</span></h3><p><span class="en">Collection runs are started manually with explicit limits rather than on a schedule. Every large run is watched and can be stopped the moment a site changes.</span><span class="vi">Các lần thu thập được khởi chạy thủ công với giới hạn rõ ràng thay vì theo lịch. Mọi lần chạy lớn đều có người theo dõi và có thể dừng ngay khi website thay đổi.</span></p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Lessons</span><span class="vi">Bài học</span></span>
+    <h2><span class="en">What I would tell the next person</span><span class="vi">Điều tôi muốn chia sẻ</span></h2>
+  </div>
+  <p class="quote"><span class="en">Most scraping problems are not parsing problems. They are queue, session and restart problems.</span><span class="vi">Phần lớn vấn đề của scraping không nằm ở việc đọc trang. Chúng nằm ở hàng đợi, session và việc chạy lại.</span></p>
+  <ul class="clean col">
+    <li><span class="en"><strong>Look for the JSON first.</strong> Many sites load their data from an endpoint or ship it inside the page. Reading that is faster and survives redesigns.</span><span class="vi"><strong>Tìm JSON trước.</strong> Nhiều website tải dữ liệu từ một endpoint hoặc gửi kèm ngay trong trang. Đọc phần đó nhanh hơn và chịu được việc đổi giao diện.</span></li>
+    <li><span class="en"><strong>Name your errors.</strong> A busy proxy, a dead proxy, a block page and a broken parser need four different reactions. Returning a named error made each one easy to handle.</span><span class="vi"><strong>Đặt tên cho lỗi.</strong> Proxy bận, proxy chết, trang chặn và bộ đọc hỏng cần bốn cách xử lý khác nhau. Trả về lỗi có tên giúp xử lý từng loại thật dễ.</span></li>
+    <li><span class="en"><strong>Each worker owns its resources.</strong> Its own connection, pool and browser. Sharing them across processes is where the strangest bugs come from.</span><span class="vi"><strong>Mỗi worker tự giữ tài nguyên của mình.</strong> Kết nối, pool và trình duyệt riêng. Dùng chung giữa các tiến trình là nơi sinh ra những lỗi khó hiểu nhất.</span></li>
+    <li><span class="en"><strong>Measure bandwidth when traffic is paid.</strong> Logging bytes per page made the real cost of browser pages visible, instead of guessing from request counts.</span><span class="vi"><strong>Đo băng thông khi lưu lượng phải trả tiền.</strong> Ghi số byte mỗi trang cho thấy chi phí thật của các trang mở bằng trình duyệt, thay vì đoán từ số request.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col"><span class="eyebrow">Stack</span></div>
+  <div class="chips">
+    <span>Python</span><span>requests</span><span>BeautifulSoup</span><span>Playwright</span><span>Selenium</span><span>multiprocessing</span><span><span class="en">proxy pool</span><span class="vi">pool proxy</span></span><span>json-repair</span><span>Elasticsearch · MinHash-LSH</span><span>phonenumbers</span><span>CSV · JSON Lines</span></div>
+</section>
+
+<footer>
+  <div class="contact">
+    <a href="https://www.linkedin.com/in/tuanvinh-24a875396">LinkedIn</a>
+    <a href="https://github.com/VinhTuan-maker">GitHub</a>
+  </div>
+  <span class="en">Case study by Tran Vinh Tuan, AI Engineer. A personal portfolio piece describing my own work; not an official publication. Internal code, prompts, credentials and collected data are not shown, and figures are rounded.</span>
+  <span class="vi">Case study của Trần Vĩnh Tuấn, AI Engineer. Tài liệu portfolio cá nhân mô tả công việc của tôi, không phải ấn phẩm chính thức. Không hiển thị mã nguồn, prompt, thông tin đăng nhập hay dữ liệu đã thu thập; số liệu đã được làm tròn.</span>
+</footer>
+</main>
+<script>
+(function(){
+  var b=document.body, en=document.getElementById('btn-en'), vi=document.getElementById('btn-vi');
+  function set(l){
+    b.classList.toggle('lang-vi', l==='vi');
+    document.documentElement.lang = l;
+    en.setAttribute('aria-pressed', l==='en'); vi.setAttribute('aria-pressed', l==='vi');
+    try{localStorage.setItem('cs-lang', l)}catch(e){}
+  }
+  en.addEventListener('click',function(){set('en')});
+  vi.addEventListener('click',function(){set('vi')});
+  var start='en';
+  if(location.hash==='#vi') start='vi';
+  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'en' }catch(e){} }
+  set(start);
+})();
+</script>
+</body>
+</html>

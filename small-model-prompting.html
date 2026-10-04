@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prompting a 4B Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with full-width flow, format grid and an input→output example; slim sticky header with EN/VI switch. Same family as the other case studies, GPU-teal accent. */
+:root{
+  --bg:#f3f3f6;          /* paper-catalog grey, indigo-biased */
+  --surface:#ffffff;
+  --ink:#1b1c2b;
+  --muted:#5a5c6e;
+  --line:#d9d9e3;
+  --accent:#0e6b70;      /* GPU teal */
+  --accent-soft:#dff0f0;
+  --amber:#b4610b;       /* LLM step */
+  --amber-soft:#f8ead9;
+  --good:#1f7a52;
+  --code-bg:#ebebf1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+    --accent:#5cc8cc; --accent-soft:#173a3c; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --code-bg:#23253a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+  --accent:#5cc8cc; --accent-soft:#173a3c; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --code-bg:#23253a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.65;padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,3.6vw,2.15rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+.vi{display:none}
+body.lang-vi .en{display:none}
+body.lang-vi .vi{display:revert}
+span.vi,span.en{display:inline}
+body.lang-vi span.en{display:none}
+body:not(.lang-vi) span.vi{display:none}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-20px;padding:10px 20px}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.switch{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.switch button{font:500 .8rem var(--f-mono);background:transparent;color:var(--muted);border:0;padding:6px 14px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.switch button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.hero{padding-block:56px 40px;display:flex;flex-direction:column;gap:22px}
+.lede{font-size:1.2rem;color:var(--muted);max-width:60ch}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.meta div{background:var(--surface);padding:14px 16px;min-width:0}
+.meta dt{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.meta dd{margin:4px 0 0;font-weight:500;font-size:.95rem}
+
+section{padding-block:44px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:22px}
+.sec-head{display:flex;flex-direction:column;gap:8px}
+
+.flow{display:flex;flex-wrap:wrap;align-items:stretch}
+.step{flex:1 1 130px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.step .n{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.step b{font-family:var(--f-display);font-size:1.02rem}
+.step p{font-size:.86rem;color:var(--muted);line-height:1.5}
+.step.ai{background:var(--amber-soft);border-color:transparent}
+.step.store{background:var(--accent-soft);border-color:transparent}
+.arrow{flex:0 0 24px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--f-mono)}
+@media (max-width:760px){.flow{flex-direction:column}.arrow{flex-basis:22px;transform:rotate(90deg)}}
+.flow-label{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.flow-label i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.lane{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.formats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.fmt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fmt .ext{font-family:var(--f-mono);font-size:.78rem;color:var(--accent);letter-spacing:.04em}
+.fmt p{font-size:.88rem;color:var(--muted);line-height:1.5}
+
+.example{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.example{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel .tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.doc{font-family:var(--f-mono);font-size:.78rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre-wrap;overflow-x:auto;line-height:1.55}
+.json{font-family:var(--f-mono);font-size:.76rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre;overflow-x:auto;line-height:1.5}
+.json .k{color:var(--accent)}
+.json .r{color:var(--amber)}
+.json .c{color:var(--muted)}
+
+.gate{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.gate div{border-left:3px solid var(--accent);padding:4px 0 4px 14px;min-width:0}
+.gate b{display:block;font-size:.98rem}
+.gate span{font-size:.9rem;color:var(--muted)}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:600}
+.pill{font-family:var(--f-mono);font-size:.72rem;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pill.cloud{background:var(--accent-soft)}
+.pill.self{background:var(--amber-soft)}
+
+.layers{display:flex;flex-direction:column;gap:8px}
+.layer{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.layer b{font-size:.92rem}
+.layer span{font-size:.9rem;color:var(--muted)}
+@media (max-width:560px){.layer{grid-template-columns:1fr}}
+
+.scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.scale div{background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.scale b{font-family:var(--f-display);font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.scale span{font-size:.86rem;color:var(--muted)}
+.scale .good b{color:var(--good)}
+
+.decisions{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.dec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 28px;padding-block:18px;border-bottom:1px solid var(--line)}
+.dec h3{font-size:1.02rem}
+.dec p{font-size:.95rem;color:var(--muted)}
+@media (max-width:640px){.dec{grid-template-columns:1fr}}
+
+ul.clean{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+.quote{font-family:var(--f-display);font-size:1.35rem;line-height:1.35;border-left:3px solid var(--amber);padding-left:18px;max-width:52ch}
+
+.datanote{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--surface);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.datanote .t{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.datanote dl{margin:0;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:6px 16px;font-size:.9rem}
+.datanote dt{font-weight:600}
+.datanote dd{margin:0;color:var(--muted)}
+@media (max-width:560px){.datanote dl{grid-template-columns:1fr}.datanote dd{margin-bottom:6px}}
+footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+.contact{display:flex;flex-wrap:wrap;gap:10px 20px;margin-bottom:14px}
+@media (prefers-reduced-motion:no-preference){.switch button{transition:background .15s,color .15s}}
+
+
+
+/* architecture figure */
+.arch{margin:22px 0 0;overflow-x:auto}
+.arch svg{display:block;width:100%;min-width:720px;height:auto}
+.arch .bx{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.arch .bx.ai{fill:var(--amber-soft);stroke:var(--amber)}
+.arch .bx.st{fill:var(--accent-soft);stroke:var(--accent)}
+.arch .bx.ex{fill:var(--surface);stroke:var(--muted);stroke-dasharray:4 3}
+.arch .lane{fill:none;stroke:var(--line);stroke-dasharray:6 5;stroke-width:1.2}
+.arch .t{font:600 13px var(--f-body);fill:var(--ink)}
+.arch .s{font:11px var(--f-body);fill:var(--muted)}
+.arch .lb{font:500 10.5px var(--f-mono);fill:var(--muted);letter-spacing:.06em}
+.arch .al{font:500 10.5px var(--f-mono);fill:var(--accent)}
+.arch .ar{fill:none;stroke:var(--muted);stroke-width:1.4}
+.arch .ar.hot{stroke:var(--accent)}
+.arch .ar.dash{stroke-dasharray:4 3}
+.arch .mk{fill:var(--muted)}
+.arch .mk.hot{fill:var(--accent)}
+.arch figcaption{font-size:.88rem;color:var(--muted);margin-top:10px;max-width:68ch}
+.arch-key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.84rem;color:var(--muted);margin-top:8px}
+.arch-key span{display:inline-flex;align-items:center;gap:6px}
+.arch-key i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+
+
+/* anatomy */
+.anat{display:flex;flex-direction:column;gap:0;margin-top:22px}
+.anat .st{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;padding:16px 0;border-top:1px solid var(--line)}
+.anat .st:first-child{border-top:0}
+.anat .who{display:flex;flex-direction:column;gap:6px}
+.anat .who b{font-family:var(--f-display);font-size:1rem}
+.anat .who .n{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.anat .who .by{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 8px;align-self:flex-start}
+.anat .by.code{background:var(--accent-soft);color:var(--accent)}
+.anat .by.llm{background:var(--amber-soft);color:var(--amber)}
+.anat .tq{font-family:var(--f-mono);font-size:.7rem;color:var(--muted)}
+.anat pre{margin:0;font-family:var(--f-mono);font-size:.78rem;line-height:1.55;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre-wrap;overflow-x:auto}
+.anat pre .x{color:var(--muted);text-decoration:line-through}
+.anat pre .ok{color:var(--good)}
+.pbar{display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--line);font-family:var(--f-mono);font-size:.72rem}
+.pbar div{display:flex;align-items:center;justify-content:center;padding:0 6px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-right:1px solid var(--surface)}
+.pbar .c{background:var(--accent-soft);color:var(--accent)}
+.pbar .v{background:var(--amber-soft);color:var(--amber)}
+.pkey{display:flex;justify-content:space-between;gap:12px;font-size:.8rem;color:var(--muted);margin-top:6px}
+@media (max-width:640px){.anat .st{grid-template-columns:1fr;gap:8px}}
+/* end anatomy */
+.lvl{font-family:var(--f-mono);font-size:.7rem;color:var(--accent);letter-spacing:1px;white-space:nowrap}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./" style="color:inherit;text-decoration:none">← <span class="en">All case studies</span><span class="vi">Tất cả case study</span> · Tran Vinh Tuan</a>
+  <div class="switch" role="group" aria-label="Language">
+    <button type="button" id="btn-en" aria-pressed="true">EN</button>
+    <button type="button" id="btn-vi" aria-pressed="false">VI</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<div class="hero">
+  <span class="eyebrow"><span class="en">Prompt engineering · self-hosted LLM</span><span class="vi">Prompt engineering · LLM tự host</span></span>
+  <h1><span class="en">Getting reliable work out of a 4B model</span><span class="vi">Khiến một mô hình 4B làm việc đáng tin cậy</span></h1>
+  <p class="lede en">The problem: a platform runs the same small text jobs on every product, company and article: removing contact details, extracting attributes, cleaning titles, writing short summaries. Paying a cloud model for each of those calls adds up. I moved more than fifteen of these tasks to a 4-billion-parameter model on our own GPU server, and learned how to write prompts and code around a model that is fast and cheap but easily confused.</p>
+  <p class="lede vi">Bài toán: một nền tảng chạy cùng những việc xử lý văn bản nhỏ trên mọi sản phẩm, doanh nghiệp và bài viết: gỡ thông tin liên hệ, trích thuộc tính, làm sạch tiêu đề, viết tóm tắt ngắn. Trả tiền mô hình cloud cho từng lượt gọi cộng lại rất tốn. Tôi chuyển hơn mười lăm việc như vậy sang một mô hình 4 tỷ tham số chạy trên GPU server riêng, và học được cách viết prompt và code bao quanh một mô hình nhanh, rẻ nhưng dễ bị rối.</p>
+  <dl class="meta">
+    <div><dt><span class="en">Role</span><span class="vi">Vai trò</span></dt><dd><span class="en">Prompts, pipelines, evaluation</span><span class="vi">Prompt, pipeline, đánh giá</span></dd></div>
+    <div><dt><span class="en">Context</span><span class="vi">Bối cảnh</span></dt><dd><span class="en">A product platform</span><span class="vi">Một nền tảng sản phẩm</span></dd></div>
+    <div><dt><span class="en">Model</span><span class="vi">Mô hình</span></dt><dd>Qwen3-4B-Instruct (FP8)</dd></div>
+    <div><dt><span class="en">Fallback</span><span class="vi">Dự phòng</span></dt><dd><span class="en">Cloud GPT models</span><span class="vi">Mô hình GPT trên cloud</span></dd></div>
+  </dl>
+</div>
+
+<aside class="datanote" aria-label="About this case study">
+  <span class="t"><span class="en">About this case study and its data</span><span class="vi">Về case study này và số liệu</span></span>
+  <dl>
+    <dt><span class="en">What this is</span><span class="vi">Đây là gì</span></dt><dd><span class="en">A personal portfolio piece about prompt techniques I developed as an engineer. The company is not named on purpose; the page is my own description, not an official company document.</span><span class="vi">Tài liệu portfolio cá nhân về các kỹ thuật prompt tôi phát triển khi làm kỹ sư. Tên công ty được cố ý không nêu; đây là mô tả của riêng tôi, không phải tài liệu chính thức của công ty.</span></dd>
+    <dt><span class="en">Prompt snippets</span><span class="vi">Đoạn prompt</span></dt><dd><span class="en">Every prompt fragment on this page is a short illustration written for this page to show a technique. None is copied from the production prompts.</span><span class="vi">Mọi đoạn prompt trên trang là ví dụ ngắn viết riêng cho trang này để minh hoạ kỹ thuật, không sao chép từ prompt thật đang chạy.</span></dd>
+    <dt><span class="en">Numbers</span><span class="vi">Số liệu</span></dt><dd><span class="en">Only settings (such as temperature) and counts of tasks are given. No usage, cost or business figures are shown.</span><span class="vi">Chỉ nêu các thiết lập (như temperature) và số lượng tác vụ. Không có số liệu sử dụng, chi phí hay kinh doanh.</span></dd>
+    <dt><span class="en">Not included</span><span class="vi">Không có trong trang</span></dt><dd><span class="en">Source code, the real prompts, server addresses, credentials, and any customer, supplier, buyer or employee data.</span><span class="vi">Mã nguồn, prompt thật, địa chỉ server, thông tin đăng nhập, và mọi dữ liệu về khách hàng, nhà cung cấp, người mua hay nhân viên.</span></dd>
+  </dl>
+</aside>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">The problem</span><span class="vi">Bài toán</span></span>
+    <h2><span class="en">Small models fail in predictable ways</span><span class="vi">Mô hình nhỏ thất bại theo những cách đoán trước được</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">A 4B model is fast, cheap to run on one GPU, and keeps data in-house. But with the same prompts that work on a large cloud model, it went wrong in the same few ways again and again:</p>
+    <p class="vi">Mô hình 4B chạy nhanh, rẻ trên một GPU, và giữ dữ liệu trong nội bộ. Nhưng với cùng những prompt chạy tốt trên mô hình cloud lớn, nó sai lặp đi lặp lại theo vài kiểu giống nhau:</p>
+  </div>
+  <div class="gate">
+    <div><b><span class="en">It "improves" the text</span><span class="vi">Tự ý "cải thiện" văn bản</span></b><span><span class="en">Asked to delete one thing, it also rewrites, summarizes or adds a comment.</span><span class="vi">Được bảo xoá một thứ, nó viết lại, tóm tắt hoặc thêm bình luận.</span></span></div>
+    <div><b><span class="en">It invents numbers</span><span class="vi">Tự bịa số liệu</span></b><span><span class="en">Rounds to a "nicer" figure, adds percentages together, or copies a number from the example.</span><span class="vi">Làm tròn cho "đẹp", cộng các tỷ lệ % với nhau, hoặc chép số từ ví dụ.</span></span></div>
+    <div><b><span class="en">It loses track of rules</span><span class="vi">Quên luật</span></b><span><span class="en">With many interacting rules, it follows the first few and forgets the rest.</span><span class="vi">Khi có nhiều luật đan xen, nó làm theo vài luật đầu và quên phần còn lại.</span></span></div>
+    <div><b><span class="en">It breaks the format</span><span class="vi">Làm hỏng định dạng</span></b><span><span class="en">Extra braces, markdown fences, or eight paragraphs where three were asked for.</span><span class="vi">Thừa dấu ngoặc, bọc trong khối markdown, hoặc tám đoạn khi chỉ yêu cầu ba.</span></span></div>
+  </div>
+  <p class="col en">The fix was rarely a cleverer prompt. It was a different split of work between the model and the code around it.</p>
+  <p class="col vi">Cách sửa hiếm khi là một prompt khéo hơn. Mà là chia lại việc giữa mô hình và phần code bao quanh nó.</p>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">The pattern</span><span class="vi">Khuôn mẫu chung</span></span>
+    <h2><span class="en">Code does the deciding, the model does the wording</span><span class="vi">Code quyết định, mô hình diễn đạt</span></h2>
+  </div>
+  <div class="flow-label">
+    <i><span class="sw" style="background:var(--surface)"></span><span class="en">code</span><span class="vi">code</span></i>
+    <i><span class="sw" style="background:var(--amber-soft)"></span><span class="en">small model</span><span class="vi">mô hình nhỏ</span></i>
+    <i><span class="sw" style="background:var(--accent-soft)"></span><span class="en">safety net</span><span class="vi">lưới an toàn</span></i>
+  </div>
+  <div class="flow" aria-label="Small model pipeline">
+    <div class="step"><span class="n">1</span><b><span class="en">Gate</span><span class="vi">Lọc trước</span></b><p><span class="en">Skip the model when a rule or lookup already knows the answer</span><span class="vi">Bỏ qua mô hình khi một luật hay bảng tra đã biết câu trả lời</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">2</span><b><span class="en">Prepare</span><span class="vi">Chuẩn bị</span></b><p><span class="en">Compute numbers, turn them into labels, cut input into small pieces</span><span class="vi">Tính số, đổi thành nhãn, cắt đầu vào thành phần nhỏ</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step ai"><span class="n">3</span><b><span class="en">One narrow task</span><span class="vi">Một việc hẹp</span></b><p><span class="en">Short rules, edge-case examples, a fixed output shape</span><span class="vi">Luật ngắn, ví dụ cho tình huống biên, đầu ra cố định</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">4</span><b><span class="en">Check</span><span class="vi">Kiểm tra</span></b><p><span class="en">Repair and validate the output, apply mechanical rules again</span><span class="vi">Sửa và kiểm tra đầu ra, áp lại các luật máy móc</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">5</span><b><span class="en">Fall back</span><span class="vi">Dự phòng</span></b><p><span class="en">Server down or bad output: cloud model, original input, or nothing</span><span class="vi">Server lỗi hoặc đầu ra hỏng: mô hình cloud, giữ nguyên đầu vào, hoặc bỏ trống</span></p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">From easy to hard</span><span class="vi">Từ dễ đến khó</span></span>
+    <h2><span class="en">Six levels of work for a small model</span><span class="vi">Sáu cấp độ công việc cho một mô hình nhỏ</span></h2>
+    <p class="muted en">Not every task is equally hard for a 4B model. The more it has to decide on its own, the more it goes wrong. I sorted the tasks by that, and each level added the techniques it needed. The rest of the page follows this ladder.</p>
+    <p class="muted vi">Không phải tác vụ nào cũng khó như nhau với mô hình 4B. Nó càng phải tự quyết định nhiều thì càng dễ sai. Tôi xếp các tác vụ theo tiêu chí đó, và mỗi cấp thêm vào những kỹ thuật nó cần. Phần còn lại của trang đi theo đúng bậc thang này.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span class="en">Level</span><span class="vi">Cấp độ</span></th><th><span class="en">Tasks</span><span class="vi">Tác vụ</span></th><th><span class="en">What goes wrong</span><span class="vi">Điều hay sai</span></th><th><span class="en">Techniques it added</span><span class="vi">Kỹ thuật thêm vào</span></th></tr></thead>
+    <tbody><tr><td class="k"><b><span class="en">1 · Delete one thing</span><span class="vi">1 · Xoá một thứ</span></b><br><span class="lvl" aria-label="difficulty 1 of 6">●○○○○○</span></td><td><span class="en">Remove contact details, strip a date from a title</span><span class="vi">Gỡ thông tin liên hệ, bỏ ngày khỏi tiêu đề</span></td><td><span class="en">It “improves” the rest of the text instead of copying it.</span><span class="vi">Nó “cải thiện” phần còn lại thay vì chép nguyên.</span></td><td><span class="en">1 · let code gate first<br>2 · shrink the task, give a no-op path</span><span class="vi">1 · để code chặn trước<br>2 · thu hẹp tác vụ, có lối “không cần sửa”</span></td></tr><tr><td class="k"><b><span class="en">2 · Extract to a fixed shape</span><span class="vi">2 · Trích xuất theo khung cố định</span></b><br><span class="lvl" aria-label="difficulty 2 of 6">●●○○○○</span></td><td><span class="en">Product attributes, cleaning attribute values</span><span class="vi">Thuộc tính sản phẩm, làm sạch giá trị thuộc tính</span></td><td><span class="en">Many keep/remove rules at once, and the format must be perfect.</span><span class="vi">Nhiều luật giữ/bỏ cùng lúc, và định dạng phải hoàn hảo.</span></td><td><span class="en">3 · show, don’t explain<br>4 · rules a small model can hold</span><span class="vi">3 · cho xem, đừng giải thích<br>4 · luật mô hình nhỏ nhớ được</span></td></tr><tr><td class="k"><b><span class="en">3 · Short structured copy</span><span class="vi">3 · Nội dung ngắn có cấu trúc</span></b><br><span class="lvl" aria-label="difficulty 3 of 6">●●●○○○</span></td><td><span class="en">Meta titles, FAQs, overviews</span><span class="vi">Meta title, FAQ, tổng quan</span></td><td><span class="en">Needs variety without invented facts, thousands of times a day.</span><span class="vi">Cần đa dạng mà không bịa, hàng nghìn lần mỗi ngày.</span></td><td><span class="en">5 · plan for failure, variety without heat<br>6 · order the prompt for the cache</span><span class="vi">5 · lên kế hoạch khi lỗi, đa dạng mà không tăng nhiệt<br>6 · sắp prompt cho cache</span></td></tr><tr><td class="k"><b><span class="en">4 · Long input</span><span class="vi">4 · Đầu vào quá dài</span></b><br><span class="lvl" aria-label="difficulty 4 of 6">●●●●○○</span></td><td><span class="en">Rich HTML descriptions, company profiles with long text</span><span class="vi">Mô tả HTML dài, hồ sơ công ty có nhiều chữ</span></td><td><span class="en">Attention spreads thin: it drops rules, edits the wrong part or breaks the markup.</span><span class="vi">Sự chú ý bị loãng: bỏ sót luật, sửa nhầm chỗ hoặc làm hỏng markup.</span></td><td><span class="en">7 · cut it into small calls</span><span class="vi">7 · cắt thành nhiều lượt gọi nhỏ</span></td></tr><tr><td class="k"><b><span class="en">5 · Write from numbers</span><span class="vi">5 · Viết từ số liệu</span></b><br><span class="lvl" aria-label="difficulty 5 of 6">●●●●●○</span></td><td><span class="en">Category supply and price paragraphs, supplier insights</span><span class="vi">Đoạn văn về nguồn cung và giá theo danh mục, insight nhà cung cấp</span></td><td><span class="en">Invents, rounds or adds numbers; merges or splits paragraphs.</span><span class="vi">Bịa, làm tròn hoặc cộng số; gộp hoặc tách đoạn lung tung.</span></td><td><span class="en">8 · facts to phrase, not data<br>9 · one slot per paragraph</span><span class="vi">8 · đưa dữ kiện, không đưa dữ liệu thô<br>9 · mỗi đoạn một ô</span></td></tr><tr><td class="k"><b><span class="en">6 · Open judgment</span><span class="vi">6 · Phán đoán mở</span></b><br><span class="lvl" aria-label="difficulty 6 of 6">●●●●●●</span></td><td><span class="en">Reviewing the quality of buying requests and product listings; reading long catalogs</span><span class="vi">Đánh giá chất lượng yêu cầu mua và tin sản phẩm; đọc catalog dài</span></td><td><span class="en">Too broad for 4B, whatever the prompt.</span><span class="vi">Quá rộng với 4B, dù prompt thế nào.</span></td><td><span class="en">Move it to a larger model</span><span class="vi">Chuyển sang mô hình lớn hơn</span></td></tr></tbody>
+  </table></div>
+  <p class="col muted" style="font-size:.9rem;margin-top:10px"><span class="en">After every level, code checks the answer before it is used. That layer is described after level 6.</span><span class="vi">Sau mỗi cấp, code kiểm tra câu trả lời trước khi dùng. Lớp kiểm tra này được mô tả sau cấp 6.</span></p>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 1 · Technique 1</span><span class="vi">Cấp 1 · Kỹ thuật 1</span></span>
+    <h2><span class="en">Don't ask the model what code already knows</span><span class="vi">Đừng hỏi mô hình điều code đã biết</span></h2>
+  </div>
+  <div class="layers">
+    <div class="layer"><b><span class="en">Gate before</span><span class="vi">Lọc trước</span></b><span><span class="en">A regular expression checks for phone numbers, emails and messaging handles first. Text without any is returned untouched, so most descriptions never reach the model at all. The phone pattern was later tightened so specs like "10000–20000 MT" don't look like phone numbers.</span><span class="vi">Một biểu thức chính quy kiểm tra số điện thoại, email và tài khoản nhắn tin trước. Văn bản không có gì thì giữ nguyên, nên phần lớn mô tả không bao giờ tới mô hình. Mẫu số điện thoại sau đó được siết lại để thông số như "10000–20000 MT" không bị nhận nhầm.</span></span></div>
+    <div class="layer"><b><span class="en">Lookups</span><span class="vi">Bảng tra</span></b><span><span class="en">Values like "n/a", "tbd" or "any" are dropped by a plain list before the prompt. That is not a judgment call, so it shouldn't take up the model's attention.</span><span class="vi">Các giá trị như "n/a", "tbd" hay "any" được loại bằng một danh sách đơn giản trước khi vào prompt. Đây không phải việc cần phán đoán, nên không nên chiếm sự chú ý của mô hình.</span></span></div>
+    <div class="layer"><b><span class="en">Mechanical rules after</span><span class="vi">Luật máy móc làm sau</span></b><span><span class="en">A rule like "drop a combined value when its parts are already listed" was taken out of the prompt and done in code after the call. Code applies it every time, however the model reasoned.</span><span class="vi">Luật kiểu "bỏ giá trị gộp khi các phần của nó đã có trong danh sách" được rút khỏi prompt và làm bằng code sau lượt gọi. Code luôn áp dụng đúng, bất kể mô hình suy luận ra sao.</span></span></div>
+    <div class="layer"><b><span class="en">Formatting</span><span class="vi">Định dạng</span></b><span><span class="en">Shortening long values, building the final "keyword | phrase | site" title, wrapping paragraphs in HTML: all moved from instructions into code.</span><span class="vi">Rút gọn giá trị dài, ghép tiêu đề cuối "từ khoá | cụm từ | tên trang", bọc đoạn văn bằng HTML: tất cả chuyển từ lời dặn sang code.</span></span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 1 · Technique 2</span><span class="vi">Cấp 1 · Kỹ thuật 2</span></span>
+    <h2><span class="en">Shrink the task until it fits</span><span class="vi">Thu nhỏ việc cho tới khi vừa sức</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">Each call does one job, and the prompt says what must stay the same and what to return when there is nothing to do. A small model needs that "do nothing" path spelled out; otherwise it always changes something.</p>
+    <p class="vi">Mỗi lượt gọi làm đúng một việc, và prompt nói rõ phần nào phải giữ nguyên, phải trả về gì khi không có gì để làm. Mô hình nhỏ cần được chỉ rõ đường "không làm gì"; nếu không, nó luôn thay đổi một thứ gì đó.</p>
+  </div>
+  <div class="example">
+    <div class="panel">
+      <span class="tag"><span class="en">Too broad for 4B (illustrative)</span><span class="vi">Quá rộng với 4B (minh hoạ)</span></span>
+      <div class="doc">Clean up this product title and make it
+better for SEO.</div>
+      <p class="muted" style="font-size:.86rem"><span class="en">The model rewrites the whole title, and the result changes from run to run.</span><span class="vi">Mô hình viết lại cả tiêu đề, và kết quả thay đổi mỗi lần chạy.</span></p>
+    </div>
+    <div class="panel">
+      <span class="tag"><span class="en">Narrow (illustrative)</span><span class="vi">Hẹp (minh hoạ)</span></span>
+      <div class="doc">Remove ONLY a trailing date or period
+(e.g. "– Q3 2026", "(Sep 2026)").
+Keep every other word exactly as written.
+If there is no date at the end, return
+the title exactly as given.
+
+"Rice Prices – Sep 2026" → "Rice Prices"
+"Organic Cashew W320"    → "Organic Cashew W320"</div>
+    </div>
+  </div>
+  <ul class="clean col">
+    <li><span class="en"><strong>One item per call.</strong> FAQs are generated one question at a time instead of "write 5 FAQs", so each answer stays focused on its own question.</span><span class="vi"><strong>Mỗi lượt một mục.</strong> FAQ được sinh từng câu một thay vì "viết 5 FAQ", nên mỗi câu trả lời chỉ tập trung vào câu hỏi của nó.</span></li>
+    <li><span class="en"><strong>Small pieces of input.</strong> To remove contact details from an HTML description, the code splits it into text nodes and sends each one separately, in parallel. The model never sees markup, so it cannot break the layout; code removes nodes that come back empty.</span><span class="vi"><strong>Đầu vào nhỏ.</strong> Để gỡ thông tin liên hệ khỏi mô tả HTML, code tách thành từng đoạn văn bản và gửi riêng từng đoạn, song song. Mô hình không bao giờ thấy thẻ HTML nên không thể làm vỡ bố cục; code tự xoá các đoạn trả về rỗng.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 2 · Technique 3</span><span class="vi">Cấp 2 · Kỹ thuật 3</span></span>
+    <h2><span class="en">Show, don't explain</span><span class="vi">Cho xem, đừng giải thích</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">A small model copies a pattern far better than it follows an abstract rule. When a long list of instructions kept being half-followed, replacing most of it with a few well-chosen input → output pairs worked better, and the prompt got shorter.</p>
+    <p class="vi">Mô hình nhỏ bắt chước khuôn mẫu tốt hơn nhiều so với làm theo một luật trừu tượng. Khi một danh sách dài chỉ dẫn cứ bị làm theo một nửa, thay phần lớn bằng vài cặp đầu vào → đầu ra được chọn kỹ lại hiệu quả hơn, và prompt còn ngắn đi.</p>
+  </div>
+  <div class="example">
+    <div class="panel">
+      <span class="tag"><span class="en">Instructions only (illustrative)</span><span class="vi">Chỉ có chỉ dẫn (minh hoạ)</span></span>
+      <div class="doc">Keys must be short noun phrases in Title Case.
+Do not include units in the key. Put units in
+the value. Merge synonyms. Never output
+product name, price, quantity or port as keys.
+Normalise percentages. Keep original spelling
+of grades and varieties…</div>
+    </div>
+    <div class="panel">
+      <span class="tag"><span class="en">Mostly examples (illustrative)</span><span class="vi">Chủ yếu là ví dụ (minh hoạ)</span></span>
+      <div class="doc">"Moisture max 14%, broken 5%, crop 2026"
+→ [{"key":"Moisture","value":"Max 14%"},
+   {"key":"Broken","value":"5%"},
+   {"key":"Crop Year","value":"2026"}]
+
+"ST25 rice, 25 MT, FOB HCMC, USD 780"
+→ [{"key":"Variety","value":"ST25"}]
+   (quantity, port and price are not attributes)</div>
+    </div>
+  </div>
+  <ul class="clean col">
+    <li><span class="en"><strong>Let one example teach several rules.</strong> The second example above shows "skip price, quantity and port" without a rule saying so.</span><span class="vi"><strong>Để một ví dụ dạy nhiều luật.</strong> Ví dụ thứ hai ở trên cho thấy "bỏ giá, số lượng và cảng" mà không cần một luật nào nói ra.</span></li>
+    <li><span class="en"><strong>Keep the rules that examples can't show.</strong> Hard limits such as "never invent a number" stay as one-line rules; style and naming are taught by example.</span><span class="vi"><strong>Giữ lại những luật mà ví dụ không thể hiện được.</strong> Giới hạn cứng như "không bao giờ bịa số" vẫn là luật một dòng; còn văn phong và cách đặt tên thì dạy bằng ví dụ.</span></li>
+    <li><span class="en"><strong>Vary the examples on purpose.</strong> Different domains and lengths, so the model learns the pattern rather than the wording of one example.</span><span class="vi"><strong>Chủ động làm ví dụ đa dạng.</strong> Khác lĩnh vực, khác độ dài, để mô hình học khuôn mẫu chứ không học thuộc câu chữ của một ví dụ.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 2 · Technique 4</span><span class="vi">Cấp 2 · Kỹ thuật 4</span></span>
+    <h2><span class="en">Write rules a small model can hold</span><span class="vi">Viết luật mà mô hình nhỏ nhớ được</span></h2>
+  </div>
+  <div class="gate">
+    <div><b><span class="en">Short, numbered, self-contained</span><span class="vi">Ngắn, đánh số, độc lập</span></b><span><span class="en">One constraint per rule and no "see rule 3". On one task I cut the rules from nine to six and moved the rest into code.</span><span class="vi">Mỗi luật một ràng buộc, không "xem luật 3". Ở một việc, tôi cắt từ chín luật xuống sáu và chuyển phần còn lại sang code.</span></span></div>
+    <div><b><span class="en">Concrete limits</span><span class="vi">Giới hạn cụ thể</span></b><span><span class="en">"Copy each number exactly", "never add two percentages", "say 'most' only above 50%" work better than "be accurate".</span><span class="vi">"Chép đúng từng con số", "không cộng hai tỷ lệ %", "chỉ nói 'phần lớn' khi trên 50%" hiệu quả hơn "hãy chính xác".</span></span></div>
+    <div><b><span class="en">Repeat the critical rule last</span><span class="vi">Nhắc lại luật quan trọng ở cuối</span></b><span><span class="en">A short "final reminder" at the end of the prompt, because small models tend to follow what they read last.</span><span class="vi">Một dòng "nhắc lại lần cuối" ở cuối prompt, vì mô hình nhỏ có xu hướng làm theo điều được đọc sau cùng.</span></span></div>
+    <div><b><span class="en">Examples for the edges</span><span class="vi">Ví dụ cho tình huống biên</span></b><span><span class="en">Include the "nothing to change" case, the "everything must go" case, and the case where the thing to remove is at the start.</span><span class="vi">Có ví dụ "không cần đổi gì", "phải xoá hết", và trường hợp phần cần xoá nằm ngay đầu câu.</span></span></div>
+    <div><b><span class="en">Examples that can't leak</span><span class="vi">Ví dụ không thể bị chép</span></b><span><span class="en">A realistic price in an example ended up in real outputs. Examples now use obvious placeholders such as "USD 1,234–5,678", labelled as patterns only.</span><span class="vi">Một mức giá trông như thật trong ví dụ đã lọt vào đầu ra thật. Giờ ví dụ dùng số giữ chỗ dễ nhận ra như "USD 1,234–5,678", ghi rõ chỉ là khuôn mẫu.</span></span></div>
+    <div><b><span class="en">Thinking, made explicit</span><span class="vi">Suy nghĩ, viết ra rõ ràng</span></b><span><span class="en">For a keep/remove decision, the model writes one short line per item ("value → KEEP, rule 2") and then the answer after a FINAL: marker, which code splits on.</span><span class="vi">Với việc giữ/bỏ, mô hình viết mỗi mục một dòng ngắn ("giá trị → KEEP, luật 2") rồi đưa đáp án sau dấu FINAL:, code tách theo dấu này.</span></span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 3 · Technique 5</span><span class="vi">Cấp 3 · Kỹ thuật 5</span></span>
+    <h2><span class="en">Expect failure and plan for it</span><span class="vi">Lường trước thất bại và có phương án</span></h2>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th><span class="en">Kind of task</span><span class="vi">Loại việc</span></th><th>Temperature</th><th><span class="en">If it fails</span><span class="vi">Nếu thất bại</span></th></tr></thead>
+      <tbody>
+        <tr><td class="k"><span class="en">Delete or extract (titles, attributes, contacts)</span><span class="vi">Xoá hoặc trích (tiêu đề, thuộc tính, liên hệ)</span></td><td>0 – 0.1</td><td><span class="en">Return the original input unchanged</span><span class="vi">Trả lại nguyên văn đầu vào</span></td></tr>
+        <tr><td class="k"><span class="en">Short structured copy (FAQ, overviews, meta titles)</span><span class="vi">Nội dung ngắn có cấu trúc (FAQ, tổng quan, meta title)</span></td><td>0.2 – 0.4</td><td><span class="en">Leave the section empty; the page renders without it</span><span class="vi">Để trống phần đó; trang vẫn hiển thị bình thường</span></td></tr>
+        <tr><td class="k"><span class="en">Longer descriptions, summaries</span><span class="vi">Mô tả dài, tóm tắt</span></td><td>0.1 – 0.3</td><td><span class="en">Retry on a cloud GPT model</span><span class="vi">Chạy lại bằng mô hình GPT trên cloud</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul class="clean col">
+    <li><span class="en"><strong>Variety without heat.</strong> To keep generated titles from sounding the same, code picks a random style angle and shuffles the input fields, instead of raising the temperature and risking invented facts.</span><span class="vi"><strong>Đa dạng mà không cần tăng nhiệt.</strong> Để tiêu đề không na ná nhau, code chọn ngẫu nhiên một góc viết và xáo thứ tự các trường đầu vào, thay vì tăng temperature và có nguy cơ bịa thông tin.</span></li>
+    <li><span class="en"><strong>Tolerant parsing.</strong> JSON is repaired before parsing, code fences and escaped tags are stripped, HTML goes through a tag allowlist, and lengths are capped.</span><span class="vi"><strong>Đọc kết quả linh hoạt.</strong> JSON được sửa trước khi đọc, khối code và thẻ bị mã hoá được gỡ, HTML đi qua danh sách thẻ cho phép, độ dài bị giới hạn.</span></li>
+    <li><span class="en"><strong>Health check first.</strong> A quick ping before each job; if the GPU server is down, work goes to the cloud model instead of failing.</span><span class="vi"><strong>Kiểm tra server trước.</strong> Một lệnh ping nhanh trước mỗi việc; nếu GPU server không phản hồi, việc chuyển sang mô hình cloud thay vì thất bại.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 3 · Technique 6</span><span class="vi">Cấp 3 · Kỹ thuật 6</span></span>
+    <h2><span class="en">Order the prompt for the cache</span><span class="vi">Sắp xếp prompt để tận dụng cache</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">The self-hosted inference server can reuse the work it already did for the beginning of a prompt, as long as that beginning is identical from one request to the next (prefix caching). The same task runs thousands of times with the same instructions and examples and only the record changes, so the order of the prompt decides how much of that work is reused.</p>
+    <p class="vi">Server suy luận tự host có thể dùng lại phần tính toán đã làm cho đoạn đầu của prompt, miễn là đoạn đầu đó giống hệt nhau giữa các lượt gọi (prefix caching). Cùng một việc chạy hàng nghìn lần với cùng chỉ dẫn và ví dụ, chỉ có bản ghi thay đổi, nên thứ tự trong prompt quyết định phần tính toán được dùng lại nhiều hay ít.</p>
+  </div>
+  <div class="example">
+    <div class="panel">
+      <span class="tag"><span class="en">Cache-unfriendly</span><span class="vi">Không hợp với cache</span></span>
+      <div class="doc">Product: <strong>{this record}</strong>      ← changes every call
+Style: <strong>{random angle}</strong>       ← changes every call
+Rules: …
+Examples: …</div>
+      <p class="muted" style="font-size:.86rem"><span class="en">The first line already differs, so nothing after it can be reused.</span><span class="vi">Ngay dòng đầu đã khác, nên không phần nào phía sau được dùng lại.</span></p>
+    </div>
+    <div class="panel">
+      <span class="tag"><span class="en">Cache-friendly</span><span class="vi">Hợp với cache</span></span>
+      <div class="doc">[system] Role, rules, examples        ← identical every call
+[user]   Style: {random angle}
+         Product: {this record}       ← only this part is new</div>
+      <p class="muted" style="font-size:.86rem"><span class="en">The long fixed part is computed once and reused; each call only processes the short new tail.</span><span class="vi">Phần cố định dài chỉ tính một lần rồi dùng lại; mỗi lượt gọi chỉ xử lý đoạn đuôi ngắn mới.</span></p>
+    </div>
+  </div>
+  <ul class="clean col">
+    <li><span class="en"><strong>Static first, variable last.</strong> Role, rules and examples go in the system message, word for word the same every time; the record goes at the very end of the user message.</span><span class="vi"><strong>Phần cố định trước, phần thay đổi sau.</strong> Vai trò, luật và ví dụ nằm trong system message, giống hệt nhau từng chữ mỗi lần; bản ghi nằm ở cuối cùng của user message.</span></li>
+    <li><span class="en"><strong>Keep randomness out of the prefix.</strong> Random style angles, shuffled fields, dates or IDs belong after the fixed part; one changing word near the top breaks the cache for everything below it.</span><span class="vi"><strong>Để phần ngẫu nhiên ra khỏi đoạn đầu.</strong> Góc viết ngẫu nhiên, trường bị xáo, ngày tháng hay ID phải nằm sau phần cố định; chỉ một chữ thay đổi ở gần đầu cũng làm mất cache cho toàn bộ phần phía sau.</span></li>
+    <li><span class="en"><strong>It also makes long example lists affordable.</strong> Because the examples sit in the cached prefix, adding more of them (Technique 3) costs little extra per call.</span><span class="vi"><strong>Nhờ vậy danh sách ví dụ dài cũng không tốn kém.</strong> Vì ví dụ nằm trong phần đầu đã được cache, thêm ví dụ (Kỹ thuật 3) gần như không tốn thêm cho mỗi lượt gọi.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 4 · Technique 7</span><span class="vi">Cấp 4 · Kỹ thuật 7</span></span>
+    <h2><span class="en">Cut long input into small calls</span><span class="vi">Cắt đầu vào dài thành nhiều lượt gọi nhỏ</span></h2>
+    <p class="en muted">A 4B model reads a short input well and a long one badly. With a long description it can keep the first rules and forget the rest, edit the wrong paragraph, or break the HTML around the text it was asked to touch. So long input is never sent whole: code splits it, trims it, or sends it to a bigger model.</p>
+    <p class="vi muted">Mô hình 4B đọc đầu vào ngắn rất tốt và đầu vào dài thì kém. Với một mô tả dài, nó có thể nhớ mấy luật đầu và quên phần sau, sửa nhầm đoạn, hoặc làm hỏng HTML quanh phần chữ được yêu cầu sửa. Vì vậy đầu vào dài không bao giờ được gửi nguyên: code tách nhỏ, cắt bớt, hoặc chuyển sang mô hình lớn hơn.</p>
+  </div>
+  <div class="example">
+    <div class="panel"><span class="tag"><span class="en">One call for the whole page (illustrative)</span><span class="vi">Một lượt gọi cho cả trang (minh hoạ)</span></span><div class="doc">&lt;div&gt;&lt;h3&gt;Specs&lt;/h3&gt;&lt;table&gt;…&lt;/table&gt;
+&lt;p&gt;Call +84 90 000 0000 for prices&lt;/p&gt;
+&lt;ul&gt;&lt;li&gt;…&lt;/li&gt; × 40&lt;/ul&gt;&lt;/div&gt;</div><p class="muted" style="font-size:.9rem"><span class="en">The model has to remove one phone number and return every tag and word intact. The longer the page, the more it must keep untouched, and the more chances it has to change something it should not.</span><span class="vi">Mô hình phải gỡ một số điện thoại và trả lại nguyên vẹn mọi thẻ và mọi chữ. Trang càng dài thì càng nhiều thứ phải giữ nguyên, và càng nhiều cơ hội để nó sửa nhầm thứ không được sửa.</span></p></div>
+    <div class="panel"><span class="tag"><span class="en">One call per text node</span><span class="vi">Mỗi text node một lượt gọi</span></span><div class="doc">node 1: "Specs"                   → skip
+node 2: "Call +84 90 000 0000 …"  → model
+node 3…42: list items            → skip
+code puts every node back into the
+original tree, tags untouched</div><p class="muted" style="font-size:.9rem"><span class="en">Code walks the HTML tree, sends only the text nodes that the regex flags, six at a time in parallel, and puts the answers back. The model never sees a tag.</span><span class="vi">Code duyệt cây HTML, chỉ gửi những text node bị regex đánh dấu, sáu node song song mỗi lần, rồi đặt câu trả lời về đúng chỗ. Mô hình không bao giờ nhìn thấy thẻ HTML.</span></p></div>
+  </div>
+  <ul class="clean col" style="margin-top:18px">
+    <li><span class="en"><strong>Split by structure, not by length.</strong> Cutting at a fixed number of characters breaks sentences and tags; cutting at the document’s own units (text nodes, paragraphs, fields) keeps every piece meaningful.</span><span class="vi"><strong>Tách theo cấu trúc, không theo độ dài.</strong> Cắt theo số ký tự cố định sẽ làm gãy câu và thẻ; cắt theo đơn vị của chính tài liệu (text node, đoạn văn, trường dữ liệu) giữ cho mỗi phần đều có nghĩa.</span></li>
+    <li><span class="en"><strong>Trim what the task does not need.</strong> For company summaries and product FAQs the description is cut to its first 1,000 characters; noise values and tiny shares are removed before the prompt is built.</span><span class="vi"><strong>Cắt bớt phần tác vụ không cần.</strong> Với tóm tắt công ty và FAQ sản phẩm, mô tả chỉ giữ 1.000 ký tự đầu; giá trị nhiễu và tỉ trọng nhỏ bị loại trước khi dựng prompt.</span></li>
+    <li><span class="en"><strong>Know when to hand it over.</strong> Whole catalogs and long web pages, where the answer depends on reading everything at once, go to a larger cloud model (level 6).</span><span class="vi"><strong>Biết khi nào nên chuyển đi.</strong> Toàn bộ catalog và trang web dài, nơi câu trả lời phụ thuộc vào việc đọc hết một lượt, được chuyển sang mô hình cloud lớn hơn (cấp 6).</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 5 · Technique 8</span><span class="vi">Cấp 5 · Kỹ thuật 8</span></span>
+    <h2><span class="en">Give it facts to phrase, not data to interpret</span><span class="vi">Đưa sự thật để diễn đạt, không đưa dữ liệu để diễn giải</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">Every number in the output is read from the input, never calculated by the model. Before the call, code computes the figures, drops zeros and tiny shares, and turns raw percentages into labels such as <em>major</em> or <em>medium</em>. Counts that the model tended to misuse are simply not shown to it.</p>
+    <p class="vi">Mọi con số ở đầu ra đều được đọc từ đầu vào, không bao giờ do mô hình tự tính. Trước khi gọi, code tính sẵn các số, bỏ số 0 và tỷ trọng quá nhỏ, rồi đổi tỷ lệ % thô thành nhãn như <em>major</em> hay <em>medium</em>. Những con số mô hình hay dùng sai thì đơn giản là không đưa cho nó.</p>
+    <p class="en">When the model kept echoing a field name into a claim (a field labelled "Leading supplier country" came back as "Country X dominates"), the fix was on the input side: rename the field so its wording can't be misread as a claim.</p>
+    <p class="vi">Khi mô hình cứ lặp lại tên trường thành một khẳng định (trường tên "Leading supplier country" bị viết thành "Nước X thống trị"), cách sửa nằm ở đầu vào: đổi tên trường để câu chữ không thể bị đọc thành khẳng định.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 5 · Technique 9</span><span class="vi">Cấp 5 · Kỹ thuật 9</span></span>
+    <h2><span class="en">Give every paragraph its own slot</span><span class="vi">Mỗi đoạn văn một ô riêng</span></h2>
+  </div>
+  <div class="example">
+    <div class="panel">
+      <span class="tag"><span class="en">Before · one free-form field</span><span class="vi">Trước · một trường tự do</span></span>
+      <div class="json">{ <span class="k">"html"</span>: "&lt;p&gt;…&lt;/p&gt; × 8" }</div>
+      <p class="muted" style="font-size:.86rem"><span class="en">Asked for three paragraphs, the model sometimes wrote one per statistic, eight in total, and repeated figures.</span><span class="vi">Được yêu cầu ba đoạn, mô hình đôi khi viết mỗi số liệu một đoạn, tổng cộng tám đoạn, và lặp lại số liệu.</span></p>
+    </div>
+    <div class="panel">
+      <span class="tag"><span class="en">After · one field per topic</span><span class="vi">Sau · mỗi chủ đề một trường</span></span>
+      <div class="json">{
+  <span class="k">"demand"</span>:  "…",
+  <span class="k">"supply"</span>:  "",   <span class="c">← "" = skip</span>
+  <span class="k">"terms"</span>:   "…"
+}</div>
+      <p class="muted" style="font-size:.86rem"><span class="en">Structured output with one field per paragraph; an empty string means "no data, skip it". Code builds the HTML in a fixed order.</span><span class="vi">Đầu ra có cấu trúc, mỗi đoạn một trường; chuỗi rỗng nghĩa là "không có dữ liệu, bỏ qua". Code dựng HTML theo thứ tự cố định.</span></p>
+    </div>
+  </div>
+  <ul class="clean col">
+    <li><span class="en"><strong>Match the schema to what the model does reliably.</strong> When it kept splitting two related topics into two paragraphs, I gave each its own field instead of fighting it.</span><span class="vi"><strong>Thiết kế schema theo điều mô hình làm ổn định.</strong> Khi nó cứ tách hai chủ đề liên quan thành hai đoạn, tôi cho mỗi chủ đề một trường riêng thay vì cố ép.</span></li>
+    <li><span class="en"><strong>Reasoning fields only where they pay.</strong> A "thinking" field placed before the answer helps on judgment tasks, but on a narrative task it doubled the tokens generated for no measured gain, so I removed it there.</span><span class="vi"><strong>Trường lập luận chỉ dùng khi đáng.</strong> Một trường "thinking" đặt trước câu trả lời giúp ích cho việc cần phán đoán, nhưng ở việc viết đoạn văn nó làm số token sinh ra tăng gấp đôi mà không đo được lợi ích, nên tôi bỏ ở đó.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 5 · Putting it together</span><span class="vi">Cấp 5 · Ghép lại với nhau</span></span>
+    <h2><span class="en">Anatomy of one call</span><span class="vi">Giải phẫu một lượt gọi</span></h2>
+    <p class="muted en">One category paragraph, followed from raw data to saved text. The category and every number are made up for illustration; the shape is the real one. Four of the five steps are code.</p>
+    <p class="muted vi">Một đoạn mô tả danh mục, đi từ dữ liệu thô tới văn bản được lưu. Danh mục và mọi con số đều là minh hoạ; còn cấu trúc là thật. Bốn trong năm bước là code.</p>
+  </div>
+  <div class="anat"><div class="st"><div class="who"><span class="n">1</span><b><span class="en">Raw data</span><span class="vi">Dữ liệu thô</span></b><span class="by code"><span class="en">code</span><span class="vi">code</span></span><span class="tq"><span class="en">the input</span><span class="vi">đầu vào</span></span></div><div><pre class="en">412 active listings · 97 suppliers
+supplier countries: Vietnam 41 · India 22 · Brazil 9
+                    Indonesia 6 · 19 others with 1–2 each
+buyer requests: 18 in the last 30 days, 27 in the 30 before</pre><pre class="vi">412 tin đang đăng · 97 nhà cung cấp
+quốc gia cung cấp: Việt Nam 41 · Ấn Độ 22 · Brazil 9
+                   Indonesia 6 · 19 nước khác, mỗi nước 1–2
+yêu cầu mua: 18 trong 30 ngày qua, 27 trong 30 ngày trước đó</pre></div></div><div class="st"><div class="who"><span class="n">2</span><b><span class="en">Facts and labels</span><span class="vi">Dữ kiện và nhãn</span></b><span class="by code"><span class="en">code</span><span class="vi">code</span></span><span class="tq"><span class="en">Techniques 1, 8</span><span class="vi">Kỹ thuật 1, 8</span></span></div><div><pre class="en">supplier_count: 97
+main_supplier_countries: Vietnam (major), India (medium)
+buyer_requests_30d: 18
+request_trend: down
+<span class="x">Brazil 9 · Indonesia 6 · 19 others</span>   ← small shares dropped
+<span class="x">−33.3%</span>                                 ← model gets the label, not the maths</pre><pre class="vi">supplier_count: 97
+main_supplier_countries: Vietnam (major), India (medium)
+buyer_requests_30d: 18
+request_trend: down
+<span class="x">Brazil 9 · Indonesia 6 · 19 nước khác</span>   ← bỏ tỉ trọng nhỏ
+<span class="x">−33,3%</span>                                    ← mô hình nhận nhãn, không phải phép tính</pre></div></div><div class="st"><div class="who"><span class="n">3</span><b><span class="en">The prompt</span><span class="vi">Prompt</span></b><span class="by code"><span class="en">code</span><span class="vi">code</span></span><span class="tq"><span class="en">Techniques 3, 4, 6</span><span class="vi">Kỹ thuật 3, 4, 6</span></span></div><div><div class="pbar" role="img" aria-label="Prompt layout: role, rules and examples form a fixed, cached prefix; style angle and facts are the short new tail"><div class="c" style="flex:10"><span class="en">role</span><span class="vi">vai trò</span></div><div class="c" style="flex:20"><span class="en">short rules</span><span class="vi">luật ngắn</span></div><div class="c" style="flex:42"><span class="en">examples, incl. edge cases</span><span class="vi">ví dụ, gồm ca biên</span></div><div class="v" style="flex:8"><span class="en">style</span><span class="vi">góc viết</span></div><div class="v" style="flex:14"><span class="en">facts</span><span class="vi">dữ kiện</span></div></div><div class="pkey"><span><span class="en">◀ fixed, identical every call · cached by the server</span><span class="vi">◀ cố định, giống hệt mọi lượt · server cache lại</span></span><span style="color:var(--amber)"><span class="en">new each call ▶</span><span class="vi">mới mỗi lượt ▶</span></span></div></div></div><div class="st"><div class="who"><span class="n">4</span><b><span class="en">Model output</span><span class="vi">Đầu ra của mô hình</span></b><span class="by llm"><span class="en">4B model</span><span class="vi">mô hình 4B</span></span><span class="tq"><span class="en">Techniques 2, 9</span><span class="vi">Kỹ thuật 2, 9</span></span></div><div><pre class="en">{
+  "supply": "Black pepper is offered by 97 suppliers, led by Vietnam, with India as a second major source.",
+  "demand": "Buyers posted 18 requests in the last 30 days, fewer than the month before."
+}</pre><pre class="vi">{
+  "supply": "Black pepper is offered by 97 suppliers, led by Vietnam, with India as a second major source.",
+  "demand": "Buyers posted 18 requests in the last 30 days, fewer than the month before."
+}</pre></div></div><div class="st"><div class="who"><span class="n">5</span><b><span class="en">Check and save</span><span class="vi">Kiểm tra và lưu</span></b><span class="by code"><span class="en">code</span><span class="vi">code</span></span><span class="tq"><span class="en">Technique 5</span><span class="vi">Kỹ thuật 5</span></span></div><div><pre class="en"><span class="ok">✓</span> matches the schema (one slot per paragraph)
+<span class="ok">✓</span> each paragraph within its length limit
+<span class="ok">✓</span> only allowed tags survive
+→ each slot wrapped in its own &lt;p&gt; and saved
+✗ if anything fails: keep the previous version, retry later</pre><pre class="vi"><span class="ok">✓</span> đúng schema (mỗi đoạn một ô)
+<span class="ok">✓</span> mỗi đoạn trong giới hạn độ dài
+<span class="ok">✓</span> chỉ giữ các thẻ được phép
+→ mỗi ô được bọc trong một &lt;p&gt; riêng rồi lưu
+✗ nếu có lỗi: giữ bản trước, thử lại sau</pre></div></div></div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Level 6 · Knowing the limit</span><span class="vi">Cấp 6 · Biết giới hạn</span></span>
+    <h2><span class="en">When 4B is the wrong model</span><span class="vi">Khi 4B là lựa chọn sai</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">Not everything belongs on the small model. A lead-quality check that weighs many signals at once started on the 4B model and moved to a cloud model the same day, because the judgment was too broad for it. The rule I settled on: the 4B model gets high-volume tasks with a narrow, checkable answer; anything that needs open-ended judgment or reads long documents goes to a larger model.</p>
+    <p class="vi">Không phải việc gì cũng hợp với mô hình nhỏ. Một bước đánh giá chất lượng lead cần cân nhắc nhiều tín hiệu cùng lúc ban đầu chạy trên mô hình 4B, rồi chuyển sang mô hình cloud ngay trong ngày vì việc phán đoán quá rộng. Nguyên tắc tôi rút ra: mô hình 4B nhận việc số lượng lớn có đáp án hẹp và kiểm tra được; việc cần phán đoán mở hoặc đọc tài liệu dài thì dùng mô hình lớn hơn.</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th><span class="en">On the 4B model</span><span class="vi">Chạy trên 4B</span></th><th><span class="en">On a larger cloud model</span><span class="vi">Chạy trên mô hình cloud lớn hơn</span></th></tr></thead>
+      <tbody>
+        <tr><td><span class="en">Removing contact details from names and descriptions</span><span class="vi">Gỡ thông tin liên hệ khỏi tên và mô tả</span></td><td><span class="en">Extracting products from long catalogs and websites</span><span class="vi">Trích sản phẩm từ catalog và website dài</span></td></tr>
+        <tr><td><span class="en">Extracting and cleaning product attributes</span><span class="vi">Trích và làm sạch thuộc tính sản phẩm</span></td><td><span class="en">Content moderation and image checks</span><span class="vi">Kiểm duyệt nội dung và kiểm tra ảnh</span></td></tr>
+        <tr><td><span class="en">Meta titles, FAQs, short overviews, article summaries</span><span class="vi">Meta title, FAQ, tổng quan ngắn, tóm tắt bài viết</span></td><td><span class="en">Multi-signal quality scoring</span><span class="vi">Chấm điểm chất lượng nhiều tín hiệu</span></td></tr>
+        <tr><td><span class="en">Market narratives from pre-computed statistics</span><span class="vi">Đoạn phân tích thị trường từ số liệu tính sẵn</span></td><td><span class="en">Customs code (HS) classification</span><span class="vi">Phân loại mã hải quan (HS)</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col stack" style="margin-top:26px">
+    <p class="en"><strong>The case: reviewing buying requests and product listings.</strong> Every new request to buy (RFQ) and every product listing gets a quality review: is the price realistic, do quantity, route and lead time fit together, are the specs physically possible, is it spam or a scam. The first version ran on the 4B model and asked it to do everything. The version that stayed splits the work, and the same design was then reused for product listings.</p>
+    <p class="vi"><strong>Trường hợp cụ thể: đánh giá yêu cầu mua và tin sản phẩm.</strong> Mỗi yêu cầu mua (RFQ) mới và mỗi tin sản phẩm đều được đánh giá chất lượng: giá có thực tế không, số lượng, tuyến vận chuyển và thời gian giao có khớp nhau không, thông số có khả thi về mặt vật lý không, có phải spam hay lừa đảo không. Phiên bản đầu chạy trên mô hình 4B và bắt nó làm tất cả. Phiên bản được giữ lại thì chia việc, và cùng thiết kế đó sau này được dùng lại cho tin sản phẩm.</p>
+  </div>
+  <div class="example">
+    <div class="panel"><span class="tag"><span class="en">Version 1 · 4B model does everything</span><span class="vi">Phiên bản 1 · mô hình 4B làm tất cả</span></span><div class="doc"><span class="en">six checklists: commercial, logistics,
+attributes, compliance, scam, spam
+→ fill every true/false
+→ compute three sub-scores itself
+→ add them up</span><span class="vi">sáu checklist: thương mại, logistics,
+thuộc tính, tuân thủ, lừa đảo, spam
+→ điền mọi đúng/sai
+→ tự tính ba điểm thành phần
+→ tự cộng lại</span></div><p class="muted" style="font-size:.9rem"><span class="en">Arithmetic, missing fields and real judgment were mixed in one answer. Blank fields could turn into “issues”, and the model was doing arithmetic it is not good at.</span><span class="vi">Phép tính, trường bị thiếu và phán đoán thật bị trộn trong một câu trả lời. Ô trống có thể bị biến thành “vấn đề”, và mô hình phải làm phép tính vốn không phải thế mạnh của nó.</span></p></div>
+    <div class="panel"><span class="tag"><span class="en">Version 2 · code scores, a larger model judges</span><span class="vi">Phiên bản 2 · code chấm điểm, mô hình lớn hơn phán đoán</span></span><div class="doc"><span class="en">code:  completeness, specificity,
+       attributes, account credibility
+model: a free list of issues and strengths
+       {kind, lacking_data?, reason,
+        name, suggested_fix}
+code:  drop “lacking data” entries,
+       adjust the score, cap the tier</span><span class="vi">code:    độ đầy đủ, độ cụ thể,
+         thuộc tính, độ tin cậy tài khoản
+mô hình: danh sách tự do các điểm yếu
+         và điểm mạnh {kind, thiếu dữ liệu?,
+          lý do, tên, cách sửa}
+code:    bỏ mục “thiếu dữ liệu”,
+         điều chỉnh điểm, giới hạn hạng</span></div><p class="muted" style="font-size:.9rem"><span class="en">The model only does what needs judgment. Everything countable is counted by code.</span><span class="vi">Mô hình chỉ làm phần cần phán đoán. Mọi thứ đếm được đều do code đếm.</span></p></div>
+  </div>
+  <ul class="clean col" style="margin-top:18px">
+    <li><span class="en"><strong>Missing is not wrong.</strong> Each finding must first say whether it exists only because a field was blank. Code drops those entries, so an empty price field can never become “price is unrealistic”.</span><span class="vi"><strong>Thiếu không phải là sai.</strong> Mỗi phát hiện phải nói trước tiên nó có tồn tại chỉ vì một trường bị trống hay không. Code bỏ những mục đó, nên một ô giá để trống không bao giờ biến thành “giá không thực tế”.</span></li>
+    <li><span class="en"><strong>Suggestions, not a fixed vocabulary.</strong> The prompt lists the kinds of problems worth looking for, but the model names what it actually finds. One rule is strict: spam and scam findings must start with a fixed prefix, so code can route them to moderation.</span><span class="vi"><strong>Gợi ý, không phải bộ từ vựng cố định.</strong> Prompt liệt kê các kiểu vấn đề đáng tìm, nhưng mô hình tự đặt tên cho thứ nó thật sự thấy. Chỉ một luật là bắt buộc: phát hiện spam và lừa đảo phải bắt đầu bằng một tiền tố cố định, để code chuyển chúng sang kiểm duyệt.</span></li>
+    <li><span class="en"><strong>Useful output, not just a verdict.</strong> Every issue carries a fix of at most eight words naming the field and the value that would solve it, which is what the buyer or the team actually acts on.</span><span class="vi"><strong>Đầu ra dùng được, không chỉ là phán quyết.</strong> Mỗi vấn đề kèm một cách sửa tối đa tám từ, nêu rõ trường và giá trị sẽ giải quyết nó, đó mới là thứ người mua hoặc đội vận hành thật sự hành động theo.</span></li>
+    <li><span class="en"><strong>Code has the last word.</strong> The score sets a tier, and the number of issues can only lower it; many issues send the item to a moderation queue no matter how good the score looks.</span><span class="vi"><strong>Code có tiếng nói cuối cùng.</strong> Điểm số quyết định hạng, và số lượng vấn đề chỉ có thể hạ hạng xuống; nhiều vấn đề sẽ đưa mục đó vào hàng đợi kiểm duyệt dù điểm trông tốt đến đâu.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Validation</span><span class="vi">Kiểm tra đầu ra</span></span>
+    <h2><span class="en">The model writes a draft; code decides if it ships</span><span class="vi">Mô hình viết bản nháp; code quyết định có dùng hay không</span></h2>
+    <p class="en muted">Every answer from the 4B model passes through code before anyone sees it. The checks are cheap and mechanical, and each level has its own safe answer when a check fails, so a bad output can cost a missing paragraph but never a wrong page.</p>
+    <p class="vi muted">Mọi câu trả lời của mô hình 4B đều đi qua code trước khi có người nhìn thấy. Các bước kiểm tra rẻ và máy móc, và mỗi cấp có sẵn một câu trả lời an toàn khi kiểm tra không đạt, nên một đầu ra tệ chỉ làm thiếu một đoạn chứ không bao giờ làm sai cả trang.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span class="en">Level</span><span class="vi">Cấp</span></th><th><span class="en">Checked after the model</span><span class="vi">Kiểm tra sau mô hình</span></th><th><span class="en">If the check fails</span><span class="vi">Nếu không đạt</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">1 · Delete</span><span class="vi">1 · Xoá</span></td><td><span class="en">Only text the regex flagged is sent; each answer replaces just that node.</span><span class="vi">Chỉ phần chữ bị regex đánh dấu mới được gửi; mỗi câu trả lời chỉ thay đúng node đó.</span></td><td><span class="en">Keep the original text; the later moderation step, on a larger model with an image check, looks for contacts again.</span><span class="vi">Giữ nguyên văn bản gốc; bước kiểm duyệt phía sau, dùng mô hình lớn hơn và kiểm tra ảnh, sẽ tìm liên hệ thêm lần nữa.</span></td></tr><tr><td class="k"><span class="en">2 · Extract</span><span class="vi">2 · Trích xuất</span></td><td><span class="en">Read only what follows the FINAL: marker, repair the JSON, normalise casing, turn “not specified” into empty, drop combined values whose parts are already listed.</span><span class="vi">Chỉ đọc phần sau dấu FINAL:, sửa JSON, chuẩn hoá chữ hoa, đổi “not specified” thành rỗng, bỏ giá trị gộp khi các phần của nó đã có.</span></td><td><span class="en">Write nothing; the listing keeps the attributes it had.</span><span class="vi">Không ghi gì; sản phẩm giữ nguyên thuộc tính đang có.</span></td></tr><tr><td class="k"><span class="en">3 · Short copy</span><span class="vi">3 · Nội dung ngắn</span></td><td><span class="en">Required fields must be present; titles are cut at 140 characters and descriptions at 250.</span><span class="vi">Các trường bắt buộc phải có; tiêu đề cắt ở 140 ký tự, mô tả ở 250.</span></td><td><span class="en">Reject the answer; the page keeps its previous version or renders without the section.</span><span class="vi">Bỏ câu trả lời; trang giữ bản trước hoặc hiển thị mà không có phần đó.</span></td></tr><tr><td class="k"><span class="en">4 · Long input</span><span class="vi">4 · Đầu vào dài</span></td><td><span class="en">Every node’s answer is put back into the original tree by code, in its original place.</span><span class="vi">Câu trả lời của từng node được code đặt lại vào đúng chỗ trong cây gốc.</span></td><td><span class="en">A failed node keeps its original text; the others still apply.</span><span class="vi">Node lỗi giữ nguyên văn bản gốc; các node khác vẫn được áp dụng.</span></td></tr><tr><td class="k"><span class="en">5 · Numbers</span><span class="vi">5 · Số liệu</span></td><td><span class="en">The answer must match the schema, one field per paragraph; only a short list of tags survives (p, strong, em, ul, li, br); code wraps each paragraph itself.</span><span class="vi">Câu trả lời phải đúng schema, mỗi đoạn một trường; chỉ giữ một danh sách ngắn thẻ (p, strong, em, ul, li, br); code tự bọc từng đoạn.</span></td><td><span class="en">Mark the record “no data” and keep serving the previous version until a refresh succeeds.</span><span class="vi">Đánh dấu bản ghi “không có dữ liệu” và tiếp tục hiển thị bản trước cho tới khi làm mới thành công.</span></td></tr><tr><td class="k"><span class="en">6 · Judgment</span><span class="vi">6 · Phán đoán</span></td><td><span class="en">Findings flagged as “lacking data” are dropped; the tier is capped by the number of issues; spam and scam names are routed by prefix.</span><span class="vi">Các phát hiện bị đánh dấu “thiếu dữ liệu” bị loại; hạng bị giới hạn theo số vấn đề; tên spam và lừa đảo được phân luồng theo tiền tố.</span></td><td><span class="en">Nothing is stored, and the item is evaluated again on the next run.</span><span class="vi">Không lưu gì, và mục đó được đánh giá lại ở lần chạy sau.</span></td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Evaluation</span><span class="vi">Đánh giá</span></span>
+    <h2><span class="en">Testing prompts like code</span><span class="vi">Kiểm thử prompt như kiểm thử code</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">For the attribute-cleaning task I set up a promptfoo comparison of two prompt styles, a long prose version and a short "rules as code" version, against the production model with the same settings production uses. Each test case lists values that must be kept, removed or merged, with ambiguous values deliberately left unscored.</p>
+    <p class="vi">Với việc làm sạch thuộc tính, tôi dựng một bài so sánh bằng promptfoo giữa hai kiểu prompt, một bản văn xuôi dài và một bản ngắn "luật như code", chạy trên đúng mô hình production với cùng thiết lập. Mỗi ca kiểm thử liệt kê các giá trị phải giữ, phải bỏ hoặc phải gộp; giá trị mơ hồ được cố ý không chấm điểm.</p>
+  </div>
+  <div class="gate">
+    <div><b><span class="en">Format must be perfect</span><span class="vi">Định dạng phải tuyệt đối đúng</span></b><span><span class="en">Marker present, valid JSON, no invented keys, every value spelled exactly as in the input. Threshold: 100%.</span><span class="vi">Có dấu FINAL, JSON hợp lệ, không có khoá bịa, mọi giá trị viết đúng y như đầu vào. Ngưỡng: 100%.</span></span></div>
+    <div><b><span class="en">Decisions must be mostly right</span><span class="vi">Quyết định phải đúng phần lớn</span></b><span><span class="en">Keep/remove accuracy, scored after the same code post-processing production applies. Threshold: 80%.</span><span class="vi">Độ chính xác giữ/bỏ, chấm sau đúng bước xử lý bằng code mà production dùng. Ngưỡng: 80%.</span></span></div>
+  </div>
+  <p class="col muted" style="font-size:.92rem"><span class="en">Scoring after post-processing matters: it tests what users actually see, not the raw model output.</span><span class="vi">Chấm sau bước xử lý rất quan trọng: nó kiểm tra đúng thứ người dùng thấy, không phải đầu ra thô của mô hình.</span></p>
+</section>
+
+<section data-add="inventory">
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">In production</span><span class="vi">Trong production</span></span>
+    <h2><span class="en">About thirty tasks share one small model</span><span class="vi">Khoảng ba mươi tác vụ dùng chung một mô hình nhỏ</span></h2>
+    <p class="muted en">The techniques above are not for one clever prompt. They are what made it possible to move about thirty everyday tasks onto one self-hosted 4B model, all behind the same API as the cloud models.</p>
+    <p class="muted vi">Các kỹ thuật ở trên không dành cho một prompt khéo léo nào đó. Chúng là thứ giúp chuyển khoảng ba mươi tác vụ hằng ngày sang một mô hình 4B tự host, tất cả nằm sau cùng một chuẩn API với các mô hình cloud.</p>
+  </div>
+  <div class="table-wrap" style="margin-top:20px"><table>
+    <thead><tr><th><span class="en">Group</span><span class="vi">Nhóm</span></th><th><span class="en">Examples</span><span class="vi">Ví dụ</span></th><th><span class="en">Output</span><span class="vi">Đầu ra</span></th><th><span class="en">Runs</span><span class="vi">Chạy ở đâu</span></th><th><span class="en">If it fails</span><span class="vi">Nếu lỗi</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Clean and extract</span><span class="vi">Làm sạch và trích xuất</span></td><td><span class="en">Contact removal, product attributes, attribute value cleanup, dates removed from titles</span><span class="vi">Gỡ thông tin liên hệ, thuộc tính sản phẩm, làm sạch giá trị thuộc tính, bỏ ngày khỏi tiêu đề</span></td><td><span class="en">Text or JSON</span><span class="vi">Văn bản hoặc JSON</span></td><td><span class="en">In the request and in jobs</span><span class="vi">Trong request và trong job</span></td><td><span class="en">Input left unchanged; contacts are checked again at review</span><span class="vi">Giữ nguyên đầu vào; liên hệ được kiểm tra lại ở bước duyệt</span></td></tr><tr><td class="k"><span class="en">Short SEO copy</span><span class="vi">Nội dung SEO ngắn</span></td><td><span class="en">Meta titles, product and category FAQs, product and supplier overviews</span><span class="vi">Meta title, FAQ sản phẩm và danh mục, tổng quan sản phẩm và nhà cung cấp</span></td><td><span class="en">Structured JSON</span><span class="vi">JSON có cấu trúc</span></td><td><span class="en">Background, cached for 7 days</span><span class="vi">Chạy nền, cache 7 ngày</span></td><td><span class="en">Previous version stays live</span><span class="vi">Bản trước vẫn hiển thị</span></td></tr><tr><td class="k"><span class="en">Longer copy</span><span class="vi">Nội dung dài hơn</span></td><td><span class="en">Product descriptions, event and blog content, description rewrites</span><span class="vi">Mô tả sản phẩm, nội dung sự kiện và blog, viết lại mô tả</span></td><td><span class="en">HTML</span><span class="vi">HTML</span></td><td><span class="en">Import and batch jobs</span><span class="vi">Lúc nhập và job theo lô</span></td><td><span class="en">Product descriptions retry on a cloud model</span><span class="vi">Mô tả sản phẩm thử lại bằng mô hình cloud</span></td></tr><tr><td class="k"><span class="en">Data narratives</span><span class="vi">Diễn giải số liệu</span></td><td><span class="en">Category supply and price paragraphs, supplier insights and statistics</span><span class="vi">Đoạn văn về nguồn cung và giá theo danh mục, insight và thống kê nhà cung cấp</span></td><td><span class="en">One field per paragraph</span><span class="vi">Mỗi đoạn một trường</span></td><td><span class="en">Background, cached for 7 days</span><span class="vi">Chạy nền, cache 7 ngày</span></td><td><span class="en">Previous version stays live</span><span class="vi">Bản trước vẫn hiển thị</span></td></tr><tr><td class="k"><span class="en">Matching drafts</span><span class="vi">Bản nháp kết nối</span></td><td><span class="en">Buyer–supplier match explanations, outreach email drafts, company review summaries</span><span class="vi">Giải thích kết nối người mua – nhà cung cấp, nháp email tiếp cận, tóm tắt đánh giá công ty</span></td><td><span class="en">Text or JSON</span><span class="vi">Văn bản hoặc JSON</span></td><td><span class="en">Background jobs</span><span class="vi">Job nền</span></td><td><span class="en">Empty result, logged</span><span class="vi">Kết quả rỗng, có ghi log</span></td></tr></tbody>
+  </table></div>
+  <p class="col muted" style="font-size:.92rem;margin-top:12px"><span class="en">Still on larger cloud models: reading long catalogs into strict JSON, moderating products, requests and quotes, checking images, normalising prices and units, and judging lead quality. The dividing line is the one described next.</span><span class="vi">Vẫn ở mô hình cloud lớn hơn: đọc catalog dài thành JSON chặt chẽ, kiểm duyệt sản phẩm, yêu cầu mua và báo giá, kiểm tra ảnh, chuẩn hoá giá và đơn vị, và đánh giá chất lượng lead. Ranh giới được giải thích ở phần tiếp theo.</span></p>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Lessons</span><span class="vi">Bài học</span></span>
+    <h2><span class="en">What I would tell the next person</span><span class="vi">Điều tôi muốn chia sẻ</span></h2>
+  </div>
+  <p class="quote"><span class="en">With a small model, every rule you can move into code is a rule the model can no longer break.</span><span class="vi">Với mô hình nhỏ, mỗi luật bạn chuyển được sang code là một luật mô hình không còn làm sai được nữa.</span></p>
+  <ul class="clean col">
+    <li><span class="en"><strong>Fix the input, not just the prompt.</strong> Renaming a field or hiding a number solved problems that more instructions couldn't.</span><span class="vi"><strong>Sửa đầu vào, không chỉ sửa prompt.</strong> Đổi tên một trường hay ẩn một con số giải quyết được những việc mà thêm lời dặn không làm được.</span></li>
+    <li><span class="en"><strong>Design for "nothing to do".</strong> The most common real input needs no change. A prompt without a clear no-op path will change it anyway.</span><span class="vi"><strong>Thiết kế cho trường hợp "không có gì để làm".</strong> Đầu vào phổ biến nhất trong thực tế lại không cần thay đổi gì. Prompt không có lối "giữ nguyên" rõ ràng sẽ vẫn thay đổi nó.</span></li>
+    <li><span class="en"><strong>Examples beat explanations.</strong> When a small model ignores a rule, try showing it instead of rewording it.</span><span class="vi"><strong>Ví dụ hiệu quả hơn giải thích.</strong> Khi mô hình nhỏ bỏ qua một luật, hãy thử cho nó xem ví dụ thay vì viết lại câu chữ của luật.</span></li>
+    <li><span class="en"><strong>Prompt order is a performance setting.</strong> Fixed instructions first and the changing record last turned the shared part of every prompt into cached work.</span><span class="vi"><strong>Thứ tự prompt cũng là một thiết lập hiệu năng.</strong> Chỉ dẫn cố định đặt trước, bản ghi thay đổi đặt sau, biến phần dùng chung của mọi prompt thành phần đã được cache.</span></li>
+    <li><span class="en"><strong>Always have a way out.</strong> A cloud fallback and a safe default made it acceptable to run a 4B model on pages real customers see.</span><span class="vi"><strong>Luôn có lối thoát.</strong> Phương án dự phòng trên cloud và giá trị mặc định an toàn khiến việc chạy mô hình 4B trên các trang khách hàng thật nhìn thấy trở nên chấp nhận được.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col"><span class="eyebrow">Stack</span></div>
+  <div class="chips">
+    <span>Qwen3-4B-Instruct (FP8)</span><span><span class="en">Self-hosted GPU inference (OpenAI-compatible API)</span><span class="vi">Suy luận trên GPU tự host (API tương thích OpenAI)</span></span><span>OpenAI SDK · GPT fallback</span><span>Pydantic · structured output</span><span>json-repair</span><span>BeautifulSoup</span><span>bleach</span><span>promptfoo</span><span>Python · ThreadPoolExecutor</span>
+  </div>
+</section>
+
+<footer>
+  <div class="contact">
+    <a href="https://www.linkedin.com/in/tuanvinh-24a875396">LinkedIn</a>
+    <a href="https://github.com/VinhTuan-maker">GitHub</a>
+  </div>
+  <span class="en">Case study by Tran Vinh Tuan, AI Engineer. A personal portfolio piece describing my own work; not an official company publication. Prompt fragments are illustrations written for this page; no internal code, prompts, credentials or customer data are shown.</span>
+  <span class="vi">Case study của Trần Vĩnh Tuấn, AI Engineer. Tài liệu portfolio cá nhân mô tả công việc của tôi, không phải ấn phẩm chính thức của công ty. Các đoạn prompt là ví dụ viết riêng cho trang này; không hiển thị mã nguồn, prompt, thông tin đăng nhập hay dữ liệu khách hàng nội bộ.</span>
+</footer>
+</main>
+<script>
+(function(){
+  var b=document.body, en=document.getElementById('btn-en'), vi=document.getElementById('btn-vi');
+  function set(l){
+    b.classList.toggle('lang-vi', l==='vi');
+    document.documentElement.lang = l;
+    en.setAttribute('aria-pressed', l==='en'); vi.setAttribute('aria-pressed', l==='vi');
+    try{localStorage.setItem('cs-lang', l)}catch(e){}
+  }
+  en.addEventListener('click',function(){set('en')});
+  vi.addEventListener('click',function(){set('vi')});
+  var start='en';
+  if(location.hash==='#vi') start='vi';
+  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'en' }catch(e){} }
+  set(start);
+})();
+</script>
+</body>
+</html>

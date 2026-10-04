@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Social Posting Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with full-bleed flow diagrams; a sticky slim header carries the EN/VI switch. */
+:root{
+  --bg:#f3f5f2;          /* paddy-field grey-green paper */
+  --surface:#ffffff;
+  --ink:#16231d;         /* deep field green-black */
+  --muted:#56645c;
+  --line:#d5ddd6;
+  --accent:#0f6b4f;      /* leaf green */
+  --accent-soft:#e1efe8;
+  --amber:#b4610b;       /* harvest / grain accent for "human checkpoint" */
+  --amber-soft:#f8ead9;
+  --code-bg:#eaeeea;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101613; --surface:#18201c; --ink:#e6ece8; --muted:#9aa9a0; --line:#2b3631;
+    --accent:#4fc39a; --accent-soft:#183a2e; --amber:#f0a352; --amber-soft:#3a2a17; --code-bg:#1f2824;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101613; --surface:#18201c; --ink:#e6ece8; --muted:#9aa9a0; --line:#2b3631;
+  --accent:#4fc39a; --accent-soft:#183a2e; --amber:#f0a352; --amber-soft:#3a2a17; --code-bg:#1f2824;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.65;padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,3.6vw,2.15rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+/* language switch */
+.vi{display:none}
+body.lang-vi .en{display:none}
+body.lang-vi .vi{display:revert}
+span.vi,span.en{display:inline}
+body.lang-vi span.en{display:none}
+body:not(.lang-vi) span.vi{display:none}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-20px;padding:10px 20px}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.switch{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.switch button{font:500 .8rem var(--f-mono);background:transparent;color:var(--muted);border:0;padding:6px 14px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.switch button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* hero */
+.hero{padding-block:56px 40px;display:flex;flex-direction:column;gap:22px}
+.lede{font-size:1.2rem;color:var(--muted);max-width:60ch}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.meta div{background:var(--surface);padding:14px 16px;min-width:0}
+.meta dt{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.meta dd{margin:4px 0 0;font-weight:500;font-size:.95rem}
+
+section{padding-block:44px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:22px}
+.sec-head{display:flex;flex-direction:column;gap:8px}
+
+/* two-part overview */
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.part .tag{font-family:var(--f-mono);font-size:.75rem;color:var(--accent)}
+.part.sales .tag{color:var(--amber)}
+
+/* flow diagram */
+.flow{display:flex;flex-wrap:wrap;gap:0;align-items:stretch}
+.step{flex:1 1 150px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px;position:relative}
+.step .n{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.step b{font-family:var(--f-display);font-size:1.02rem}
+.step p{font-size:.88rem;color:var(--muted);line-height:1.5}
+.step.store{background:var(--accent-soft);border-color:transparent}
+.step.human{background:var(--amber-soft);border-color:transparent}
+.arrow{flex:0 0 26px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--f-mono)}
+@media (max-width:720px){
+  .flow{flex-direction:column}
+  .arrow{flex-basis:24px;transform:rotate(90deg)}
+}
+.flow-label{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.flow-label i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+
+/* checklist */
+.gate{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.gate div{border-left:3px solid var(--accent);padding:4px 0 4px 14px;min-width:0}
+.gate b{display:block;font-size:.98rem}
+.gate span{font-size:.9rem;color:var(--muted)}
+
+/* chat mock */
+.chat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;font-size:.93rem}
+.chat .note{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.msg{max-width:88%;padding:10px 14px;border-radius:12px;line-height:1.5;min-width:0}
+.msg.user{align-self:flex-end;background:var(--ink);color:var(--bg);border-bottom-right-radius:4px}
+.msg.ai{align-self:flex-start;background:var(--code-bg);border-bottom-left-radius:4px}
+.msg.ai .form{font-family:var(--f-mono);font-size:.8rem;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin-top:6px}
+.ok{color:var(--accent)} .miss{color:var(--amber)}
+
+/* decisions */
+.decisions{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
+.dec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 28px;padding-block:18px;border-bottom:1px solid var(--line)}
+.dec h3{font-size:1.02rem}
+.dec p{font-size:.95rem;color:var(--muted)}
+@media (max-width:640px){.dec{grid-template-columns:1fr}}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:520px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+
+ul.clean{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+.quote{font-family:var(--f-display);font-size:1.35rem;line-height:1.35;border-left:3px solid var(--amber);padding-left:18px;max-width:52ch}
+
+/* sample post */
+.sample{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:720px){.sample{grid-template-columns:1fr}}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{font:500 .8rem var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.post{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.post-head{display:flex;gap:10px;align-items:center;padding:12px 14px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);flex:0 0 36px}
+.post-head b{display:block;font-size:.9rem}
+.post-head small{color:var(--muted);font-size:.75rem}
+.post-body{padding:0 14px 14px;font-size:.9rem;line-height:1.55;white-space:pre-line}
+.banner{background:#123d2f;color:#f2f6f3;padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:12px;align-items:center}
+.banner .eb{font:500 .68rem var(--f-mono);letter-spacing:.14em;color:#f0b35c}
+.banner h4{font-family:var(--f-display);font-size:1.35rem;margin:4px 0 8px;line-height:1.1}
+.banner ul{margin:0;padding:0;list-style:none;font-size:.78rem;display:flex;flex-direction:column;gap:3px;color:#cfe0d6}
+.kernel{width:72px;height:72px;border-radius:60% 60% 50% 50% / 75% 75% 35% 35%;background:radial-gradient(circle at 35% 30%,#f6e3bf,#d8b47a 70%);transform:rotate(-28deg);box-shadow:inset -10px -6px 0 0 #123d2f}
+.callouts{display:flex;flex-direction:column;gap:12px;font-size:.92rem;min-width:0}
+.callouts div{border-left:3px solid var(--accent);padding-left:12px}
+.callouts b{display:block}
+.callouts span{color:var(--muted)}
+.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.role-grid div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.role-grid b{display:block;font-size:.95rem;margin-bottom:4px}
+.role-grid span{font-size:.88rem;color:var(--muted)}
+.contact{display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:10px}
+
+.pairs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.pair{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pair .lbl{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.88rem}
+.node{border-radius:8px;padding:6px 10px;border:1px solid var(--line)}
+.node.drv{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+.node.mir{background:var(--accent-soft);border-color:transparent}
+.chain .ar{color:var(--muted);font-family:var(--f-mono)}
+.quota{display:flex;flex-wrap:wrap;gap:8px}
+.quota span{font-family:var(--f-mono);font-size:.8rem;border-radius:6px;padding:4px 10px;background:var(--code-bg)}
+.families{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px}
+.fam{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.fam .src{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.fam.ext .src{color:var(--amber)}
+.fam p{font-size:.92rem;color:var(--muted);line-height:1.55}
+.fam ul{margin:0;padding-left:1.1em;font-size:.9rem;display:flex;flex-direction:column;gap:4px}
+.fam .ex{font-size:.86rem;border-left:2px solid var(--line);padding-left:10px;color:var(--ink)}
+
+.datanote{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--surface);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.datanote .t{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.datanote dl{margin:0;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:6px 16px;font-size:.9rem}
+.datanote dt{font-weight:600}
+.datanote dd{margin:0;color:var(--muted)}
+@media (max-width:560px){.datanote dl{grid-template-columns:1fr}.datanote dd{margin-bottom:6px}}
+footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.switch button{transition:background .15s,color .15s}}
+
+
+
+/* architecture figure */
+.arch{margin:22px 0 0;overflow-x:auto}
+.arch svg{display:block;width:100%;min-width:720px;height:auto}
+.arch .bx{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.arch .bx.ai{fill:var(--amber-soft);stroke:var(--amber)}
+.arch .bx.st{fill:var(--accent-soft);stroke:var(--accent)}
+.arch .bx.ex{fill:var(--surface);stroke:var(--muted);stroke-dasharray:4 3}
+.arch .lane{fill:none;stroke:var(--line);stroke-dasharray:6 5;stroke-width:1.2}
+.arch .t{font:600 13px var(--f-body);fill:var(--ink)}
+.arch .s{font:11px var(--f-body);fill:var(--muted)}
+.arch .lb{font:500 10.5px var(--f-mono);fill:var(--muted);letter-spacing:.06em}
+.arch .al{font:500 10.5px var(--f-mono);fill:var(--accent)}
+.arch .ar{fill:none;stroke:var(--muted);stroke-width:1.4}
+.arch .ar.hot{stroke:var(--accent)}
+.arch .ar.dash{stroke-dasharray:4 3}
+.arch .mk{fill:var(--muted)}
+.arch .mk.hot{fill:var(--accent)}
+.arch figcaption{font-size:.88rem;color:var(--muted);margin-top:10px;max-width:68ch}
+.arch-key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.84rem;color:var(--muted);margin-top:8px}
+.arch-key span{display:inline-flex;align-items:center;gap:6px}
+.arch-key i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+
+
+/* perm */
+.perm td,.perm th{text-align:center}
+.perm td:first-child,.perm th:first-child{text-align:left}
+.perm .y{color:var(--accent);font-weight:600}
+.perm .n{color:var(--muted)}
+.perm .o{font-family:var(--f-mono);font-size:.78rem;background:var(--amber-soft);border-radius:999px;padding:2px 8px;white-space:nowrap}
+/* end perm */
+</style>
+</head>
+<body>
+
+
+<header class="top"><div class="wrap">
+  <a class="brand" href="./" style="color:inherit;text-decoration:none">← <span class="en">All case studies</span><span class="vi">Tất cả case study</span> · Tran Vinh Tuan</a>
+  <div class="switch" role="group" aria-label="Language">
+    <button type="button" id="btn-en" aria-pressed="true">EN</button>
+    <button type="button" id="btn-vi" aria-pressed="false">VI</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<div class="hero">
+  <span class="eyebrow"><span class="en">AI agents · social publishing</span><span class="vi">AI agent · đăng bài mạng xã hội</span></span>
+  <h1><span class="en">Turning buyer requests into social posts, with AI agents</span><span class="vi">Biến nhu cầu mua hàng thành bài đăng social bằng AI agent</span></h1>
+  <p class="lede en">The problem: a trading platform receives a steady flow of buying requests (RFQs) from importers around the world, but has no time to turn them into content. I built two AI-agent workflows that turn that data, plus supplier listings and market statistics, into social posts: one runs on its own for the company's channels, and one helps each salesperson write and post from their own Claude or ChatGPT.</p>
+  <p class="lede vi">Bài toán: một nền tảng giao thương nhận đều đặn các yêu cầu mua hàng (RFQ) từ nhà nhập khẩu khắp thế giới, nhưng không có thời gian biến chúng thành nội dung. Tôi xây hai luồng AI agent biến dữ liệu đó, cùng sản phẩm của nhà cung cấp và số liệu thị trường, thành bài đăng social: một luồng tự chạy cho kênh của công ty, một luồng giúp từng bạn sales tự viết và đăng bài ngay trong Claude hoặc ChatGPT của mình.</p>
+  <dl class="meta">
+    <div><dt><span class="en">Role</span><span class="vi">Vai trò</span></dt><dd><span class="en">Design, backend, agent skills</span><span class="vi">Thiết kế, backend, skill cho agent</span></dd></div>
+    <div><dt><span class="en">Context</span><span class="vi">Bối cảnh</span></dt><dd><span class="en">Trading platform, in-house team</span><span class="vi">Nền tảng giao thương, đội nội bộ</span></dd></div>
+    <div><dt><span class="en">Period</span><span class="vi">Thời gian</span></dt><dd>2025 – 2026</dd></div>
+    <div><dt><span class="en">Channels</span><span class="vi">Kênh</span></dt><dd>LinkedIn · Facebook</dd></div>
+    <div><dt><span class="en">First 4 weeks</span><span class="vi">4 tuần đầu</span></dt><dd><span class="en">1,500+ posts · ~25 channels</span><span class="vi">1.500+ lượt đăng · ~25 kênh</span></dd></div>
+  </dl>
+</div>
+
+<aside class="datanote" aria-label="About this case study">
+  <span class="t"><span class="en">About this case study and its data</span><span class="vi">Về case study này và số liệu</span></span>
+  <dl><dt><span class="en">What this is</span><span class="vi">Đây là gì</span></dt><dd><span class="en">A personal portfolio piece describing a system I designed and built as an engineer. The company is not named on purpose; the page is my own description, not an official company document.</span><span class="vi">Tài liệu portfolio cá nhân, mô tả hệ thống tôi đã thiết kế và xây khi làm kỹ sư. Tên công ty được cố ý không nêu; đây là mô tả của riêng tôi, không phải tài liệu chính thức của công ty.</span></dd><dt><span class="en">Numbers</span><span class="vi">Số liệu</span></dt><dd><span class="en">Posting volume and channel counts are rounded totals of posts that were published publicly on LinkedIn and Facebook, so anyone can see them. No private analytics or business figures are shown.</span><span class="vi">Số lượt đăng và số kênh là tổng đã làm tròn của các bài đã đăng công khai trên LinkedIn và Facebook, ai cũng xem được. Không có số liệu phân tích nội bộ hay số liệu kinh doanh.</span></dd><dt><span class="en">Examples</span><span class="vi">Ví dụ</span></dt><dd><span class="en">The buying request, post texts, banner and chat are made up to show the format. They are not real leads or real conversations.</span><span class="vi">Yêu cầu mua, nội dung bài, banner và đoạn chat đều là ví dụ tự tạo để minh hoạ định dạng, không phải lead hay hội thoại thật.</span></dd><dt><span class="en">Not included</span><span class="vi">Không có trong trang</span></dt><dd><span class="en">Source code, prompts, credentials, server details, and any customer, supplier, buyer or employee data.</span><span class="vi">Mã nguồn, prompt, thông tin đăng nhập, thông tin server, và mọi dữ liệu về khách hàng, nhà cung cấp, người mua hay nhân viên.</span></dd></dl>
+</aside>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">The problem</span><span class="vi">Bài toán</span></span>
+    <h2><span class="en">Plenty of good data, too few hands to post it</span><span class="vi">Dữ liệu tốt rất nhiều, người viết thì ít</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">Every RFQ on the platform is a small story: <em>a buyer in the Philippines wants 500 tons of rice, paid by letter of credit</em>. Posted on social media, stories like this bring suppliers to the platform. The content team was too small to write them by hand, in two languages, every day, for several channels.</p>
+    <p class="vi">Mỗi RFQ trên nền tảng là một câu chuyện nhỏ: <em>một người mua ở Philippines cần 500 tấn gạo, thanh toán bằng L/C</em>. Đăng lên mạng xã hội, những câu chuyện này kéo nhà cung cấp về nền tảng. Đội content quá ít người để viết tay mỗi ngày, bằng hai ngôn ngữ, cho nhiều kênh.</p>
+    <p class="en">Sales had a related need. They wanted to post on their own pages too, but writing a good post from raw data takes time, and they should never post an unverified or duplicate lead.</p>
+    <p class="vi">Sales cũng có nhu cầu tương tự. Họ muốn đăng trên trang của riêng mình, nhưng viết một bài tốt từ dữ liệu thô tốn thời gian, và tuyệt đối không được đăng lead chưa xác minh hay đăng trùng.</p>
+  </div>
+  <div class="parts">
+    <div class="part">
+      <span class="tag"><span class="en">PART 1 · Automatic</span><span class="vi">PHẦN 1 · Tự động</span></span>
+      <h3><span class="en">Company pipeline</span><span class="vi">Pipeline của công ty</span></h3>
+      <p class="muted"><span class="en">An agent picks verified leads, writes posts in every template and language, builds the image, and publishes to company channels. No one writes copy.</span><span class="vi">Agent tự chọn lead đã xác minh, viết bài theo mọi template và ngôn ngữ, làm ảnh, rồi đăng lên kênh công ty. Không ai phải viết tay.</span></p>
+    </div>
+    <div class="part sales">
+      <span class="tag"><span class="en">PART 2 · Human in the loop</span><span class="vi">PHẦN 2 · Có người duyệt</span></span>
+      <h3><span class="en">Sales assistant</span><span class="vi">Trợ lý cho sales</span></h3>
+      <p class="muted"><span class="en">A salesperson types one sentence in Claude or ChatGPT. The agent finds the data, drafts the post, asks for approval, then schedules it to the channel they choose.</span><span class="vi">Sales gõ một câu trong Claude hoặc ChatGPT. Agent tự tìm dữ liệu, viết nháp, xin duyệt, rồi lên lịch đăng lên kênh sales chọn.</span></p>
+    </div>
+  </div>
+</section>
+
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">My role</span><span class="vi">Vai trò của tôi</span></span>
+    <h2><span class="en">What I built</span><span class="vi">Những gì tôi xây</span></h2>
+    <p class="muted en">I designed and built the system end to end, from the database to the agent's instructions.</p>
+    <p class="muted vi">Tôi thiết kế và xây toàn bộ hệ thống, từ database tới hướng dẫn cho agent.</p>
+  </div>
+  <div class="role-grid">
+    <div><b><span class="en">Architecture</span><span class="vi">Kiến trúc</span></b><span><span class="en">Split into write and publish flows, the post library and the posting log</span><span class="vi">Tách luồng viết và luồng đăng, thiết kế thư viện bài và nhật ký đăng</span></span></div>
+    <div><b><span class="en">Tool server (Python)</span><span class="vi">Tool server (Python)</span></b><span><span class="en">MCP tools for sourcing leads, saving posts, images and posting status</span><span class="vi">Các tool MCP lấy lead, lưu bài, xử lý ảnh và trạng thái đăng</span></span></div>
+    <div><b><span class="en">Agent skills</span><span class="vi">Skill cho agent</span></b><span><span class="en">Writing rules, post templates, language layers and step-by-step workflows</span><span class="vi">Luật viết, template bài, lớp ngôn ngữ và quy trình từng bước</span></span></div>
+    <div><b><span class="en">Image pipeline</span><span class="vi">Pipeline ảnh</span></b><span><span class="en">Prompt writing, generation, background removal and banner layout</span><span class="vi">Viết prompt, tạo ảnh, tách nền và dựng banner</span></span></div>
+    <div><b><span class="en">Access control</span><span class="vi">Phân quyền</span></b><span><span class="en">Sales role, tool allow-list and per-person ownership of posts</span><span class="vi">Role sales, danh sách tool được phép và quyền sở hữu bài theo từng người</span></span></div>
+    <div><b><span class="en">Testing</span><span class="vi">Kiểm thử</span></b><span><span class="en">Automated tests for access rules and end-to-end checks before launch</span><span class="vi">Test tự động cho luật phân quyền và kiểm thử end-to-end trước khi ra mắt</span></span></div>
+  </div>
+</section>
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Shared foundation</span><span class="vi">Nền tảng chung</span></span>
+    <h2><span class="en">One tool server, many agents</span><span class="vi">Một tool server, nhiều agent</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">Both parts talk to the company database through the same <strong>MCP server</strong> (Model Context Protocol). MCP is a standard way to give an AI assistant a set of tools, like "get quality RFQs" or "save this post". The AI decides <em>when</em> to call a tool; the server decides <em>what is allowed</em> and runs the real logic.</p>
+    <p class="vi">Cả hai phần nói chuyện với database của công ty qua cùng một <strong>MCP server</strong> (Model Context Protocol). MCP là cách chuẩn để trao cho trợ lý AI một bộ công cụ, ví dụ "lấy RFQ chất lượng" hay "lưu bài này". AI quyết định <em>khi nào</em> gọi tool; server quyết định <em>điều gì được phép</em> và chạy logic thật.</p>
+    <p class="en">The agent's know-how lives in <strong>skills</strong>: plain instruction files for writing rules, post templates, tone of voice per language, and the step-by-step workflow. Changing the post format means editing a skill, not redeploying code. Switching the post language means swapping one language skill.</p>
+    <p class="vi">Kiến thức của agent nằm trong các <strong>skill</strong>: file hướng dẫn dạng văn bản cho luật viết, template bài, giọng văn theo từng ngôn ngữ và quy trình từng bước. Đổi format bài chỉ cần sửa skill, không phải deploy lại code. Đổi ngôn ngữ bài chỉ cần thay một skill ngôn ngữ.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Part 1</span><span class="vi">Phần 1</span></span>
+    <h2><span class="en">The automatic pipeline: write once, publish later</span><span class="vi">Pipeline tự động: viết một lần, đăng sau</span></h2>
+    <p class="muted en">The key decision was to split the work into two independent flows that meet at a post library.</p>
+    <p class="muted vi">Quyết định quan trọng nhất là tách công việc thành hai luồng độc lập, gặp nhau ở một thư viện bài.</p>
+  </div>
+
+  <div class="flow-label">
+    <i><span class="sw" style="background:var(--surface)"></span><span class="en">agent step</span><span class="vi">bước của agent</span></i>
+    <i><span class="sw" style="background:var(--accent-soft)"></span><span class="en">stored in database</span><span class="vi">lưu trong database</span></i>
+  </div>
+  <div class="flow" aria-label="Pipeline flow">
+    <div class="step"><span class="n">FLOW 1 · 1</span><b><span class="en">Pick sources</span><span class="vi">Chọn nguồn</span></b><p><span class="en">RFQs, products or market data that pass the quality gate</span><span class="vi">RFQ, sản phẩm hoặc số liệu thị trường qua được bộ lọc chất lượng</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">FLOW 1 · 2</span><b><span class="en">Write</span><span class="vi">Viết bài</span></b><p><span class="en">Every template that fits, in EN and/or VI</span><span class="vi">Mọi template phù hợp, tiếng Anh và/hoặc tiếng Việt</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">FLOW 1 · 3</span><b><span class="en">Make image</span><span class="vi">Làm ảnh</span></b><p><span class="en">Generate product photo, place on branded banner</span><span class="vi">Tạo ảnh sản phẩm, ghép vào banner thương hiệu</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">LIBRARY</span><b><span class="en">Post library</span><span class="vi">Thư viện bài</span></b><p><span class="en">Finished posts, ready for any channel</span><span class="vi">Bài hoàn chỉnh, sẵn sàng cho mọi kênh</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">FLOW 2 · 1</span><b><span class="en">Publish</span><span class="vi">Đăng bài</span></b><p><span class="en">Pick unposted posts, add tracking links, schedule via Postiz</span><span class="vi">Chọn bài chưa đăng, gắn link tracking, lên lịch qua Postiz</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">LOG</span><b><span class="en">Posting log</span><span class="vi">Nhật ký đăng</span></b><p><span class="en">Each post marked "posted", never again</span><span class="vi">Mỗi bài ghi "đã đăng", không đăng lại</span></p></div>
+  </div>
+
+
+  <div class="col stack">
+    <h3><span class="en">What comes out: one lead, three posts</span><span class="vi">Đầu ra: một lead, ba bài</span></h3>
+    <p class="muted en">An illustrative example with made-up data. Each template has a different job, so the same lead reaches different readers.</p>
+    <p class="muted vi">Ví dụ minh hoạ với dữ liệu giả. Mỗi template có một nhiệm vụ riêng, nên cùng một lead tiếp cận được nhiều kiểu người đọc.</p>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Templates">
+    <button type="button" role="tab" id="tab-a" aria-selected="true" data-t="a"><span class="en">Market context</span><span class="vi">Bối cảnh thị trường</span></button>
+    <button type="button" role="tab" id="tab-b" aria-selected="false" data-t="b"><span class="en">Supplier checklist</span><span class="vi">Lọc nhà cung cấp</span></button>
+    <button type="button" role="tab" id="tab-c" aria-selected="false" data-t="c"><span class="en">Short spec</span><span class="vi">Spec ngắn</span></button>
+  </div>
+  <div class="sample">
+    <div class="post" aria-label="Example post">
+      <div class="post-head"><span class="avatar" aria-hidden="true"></span><div><b><span class="en">Example company page</span><span class="vi">Trang công ty mẫu</span></b><small><span class="en">Sample · not a real lead</span><span class="vi">Mẫu · không phải lead thật</span></small></div></div>
+      <div class="post-body" data-p="a"><span class="en">Gulf importers usually lock in cashew supply months before peak season, which makes this a good time to quote.
+
+A verified buyer in the UAE is looking for:
+• Cashew kernels W320, 32 MT (2 containers)
+• CIF Jebel Ali · Payment: T/T
+→ See the request and send a quote on the platform</span><span class="vi">Nhà nhập khẩu vùng Vịnh thường chốt nguồn hạt điều nhiều tháng trước mùa cao điểm, nên đây là lúc tốt để báo giá.
+
+Một người mua đã xác minh tại UAE đang tìm:
+• Nhân hạt điều W320, 32 tấn (2 container)
+• CIF Jebel Ali · Thanh toán: T/T
+→ Xem yêu cầu và gửi báo giá trên nền tảng</span></div>
+      <div class="post-body" data-p="b" hidden><span class="en">Looking for cashew suppliers who can meet these conditions:
+✓ W320 grade, white whole kernels
+✓ Export packing in vacuum tins
+✓ Able to ship 2 containers to Jebel Ali
+
+If that is you, a verified UAE buyer is waiting for your quote.
+→ Apply on the platform</span><span class="vi">Tìm nhà cung cấp hạt điều đáp ứng các điều kiện sau:
+✓ Loại W320, nhân trắng nguyên hạt
+✓ Đóng gói xuất khẩu hút chân không
+✓ Giao được 2 container về Jebel Ali
+
+Nếu bạn đáp ứng được, một người mua đã xác minh tại UAE đang chờ báo giá.
+→ Ứng tuyển trên nền tảng</span></div>
+      <div class="post-body" data-p="c" hidden><span class="en">UAE · 32 MT · Cashew W320 · CIF Jebel Ali
+Verified buyer. Quote now →</span><span class="vi">UAE · 32 tấn · Hạt điều W320 · CIF Jebel Ali
+Người mua đã xác minh. Báo giá ngay →</span></div>
+      <div class="banner" aria-label="Generated banner">
+        <div><span class="eb"><span class="en">BUYER LOOKING FOR</span><span class="vi">BUYER ĐANG TÌM MUA</span></span><h4><span class="en">Cashew kernels W320</span><span class="vi">Nhân hạt điều W320</span></h4>
+          <ul><li><span class="en">32 MT · 2 containers</span><span class="vi">32 tấn · 2 container</span></li><li>UAE · CIF Jebel Ali</li><li>T/T</li></ul></div>
+        <div class="kernel" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="callouts">
+      <div><b><span class="en">Opens with context, not a list</span><span class="vi">Mở đầu bằng bối cảnh, không liệt kê</span></b><span><span class="en">The writing rules require a real insight first. Rephrasing the numbers does not count.</span><span class="vi">Luật viết yêu cầu mở đầu bằng một nhận định thật. Viết lại các con số không được tính.</span></span></div>
+      <div><b><span class="en">Only facts from the lead</span><span class="vi">Chỉ dùng dữ kiện của lead</span></b><span><span class="en">Missing fields are left out, never guessed. "Verified" appears only when the buyer really is.</span><span class="vi">Thiếu trường nào thì bỏ trường đó, không đoán. Chỉ ghi "đã xác minh" khi người mua thật sự đã xác minh.</span></span></div>
+      <div><b><span class="en">Same banner for all three</span><span class="vi">Một banner cho cả ba bài</span></b><span><span class="en">The banner is built once per language from the lead's real fields, then reused.</span><span class="vi">Banner được dựng một lần cho mỗi ngôn ngữ từ dữ liệu thật của lead, rồi dùng lại.</span></span></div>
+      <div><b><span class="en">Tracked per channel</span><span class="vi">Tracking theo từng kênh</span></b><span><span class="en">The link gets a different tracking tag on each channel when it is published.</span><span class="vi">Khi đăng, link được gắn tag tracking khác nhau cho từng kênh.</span></span></div>
+    </div>
+  </div>
+  <div class="col stack">
+    <h3><span class="en">Why two flows instead of one</span><span class="vi">Vì sao tách hai luồng thay vì một</span></h3>
+    <ul class="clean">
+      <li><span class="en"><strong>Writing is slow, posting is fast.</strong> The writer can fill the library in a batch; the publisher can post a little every day.</span><span class="vi"><strong>Viết thì chậm, đăng thì nhanh.</strong> Luồng viết làm một lô vào thư viện; luồng đăng mỗi ngày lấy ra một ít.</span></li>
+      <li><span class="en"><strong>One post, many channels.</strong> A post has no platform field. The same text goes to Facebook and LinkedIn; only the tracking tag in the link changes.</span><span class="vi"><strong>Một bài, nhiều kênh.</strong> Bài không gắn với nền tảng nào. Cùng nội dung lên Facebook và LinkedIn, chỉ khác tag tracking trong link.</span></li>
+      <li><span class="en"><strong>Easier to test and fix.</strong> If an image is wrong, that is a Flow 1 bug. The publisher never rewrites copy, so what was approved is exactly what goes out.</span><span class="vi"><strong>Dễ kiểm thử và sửa lỗi.</strong> Ảnh sai là lỗi của Luồng 1. Luồng đăng không bao giờ sửa nội dung, nên bài đã lưu là đúng bài được đăng.</span></li>
+    </ul>
+  </div>
+
+  <div class="col stack">
+    <h3><span class="en">What makes a lead "good enough to post"</span><span class="vi">Thế nào là lead "đủ tốt để đăng"</span></h3>
+    <p class="muted en">A public post with a fake or spammy lead hurts the brand, so the server filters before the agent ever sees the data. The agent cannot override these rules.</p>
+    <p class="muted vi">Đăng công khai một lead giả hay spam sẽ hại thương hiệu, nên server lọc trước khi agent nhìn thấy dữ liệu. Agent không thể bỏ qua các luật này.</p>
+  </div>
+  <div class="gate">
+    <div><b><span class="en">Strong lead score</span><span class="vi">Điểm lead cao</span></b><span><span class="en">Above an internal quality-score threshold</span><span class="vi">Vượt ngưỡng điểm chất lượng nội bộ</span></span></div>
+    <div><b><span class="en">Verified buyer</span><span class="vi">Người mua đã xác minh</span></b><span><span class="en">Identity and business checked by the platform</span><span class="vi">Danh tính và doanh nghiệp đã được nền tảng xác minh</span></span></div>
+    <div><b><span class="en">Passed an LLM review</span><span class="vi">Qua vòng LLM đánh giá</span></b><span><span class="en">No signs of scam, spam or unrealistic terms</span><span class="vi">Không có dấu hiệu lừa đảo, spam hay điều khoản phi thực tế</span></span></div>
+    <div><b><span class="en">Fresh and unused</span><span class="vi">Mới và chưa dùng</span></b><span><span class="en">Recent, and never turned into a post before</span><span class="vi">Còn mới, và chưa từng được làm thành bài</span></span></div>
+  </div>
+
+  <div class="col stack">
+    <h3><span class="en">One image, reused across templates</span><span class="vi">Một ảnh, dùng chung cho mọi template</span></h3>
+    <p class="en">For each RFQ the agent writes an image prompt, generates a product photo with a text-to-image model, removes the background, and places it on a branded banner with the RFQ's real numbers (quantity, destination, terms). The banner is made once per language and shared by all three templates, which keeps image cost low.</p>
+    <p class="vi">Với mỗi RFQ, agent viết prompt ảnh, tạo ảnh sản phẩm bằng model text-to-image, tách nền, rồi đặt lên banner thương hiệu cùng số liệu thật của RFQ (số lượng, nơi giao, điều khoản). Mỗi ngôn ngữ chỉ làm một banner, dùng chung cho cả ba template, nên chi phí ảnh thấp.</p>
+  </div>
+
+  <div class="col stack">
+    <h3><span class="en">Posted exactly once, even with many agents running</span><span class="vi">Mỗi bài chỉ đăng đúng một lần, kể cả khi nhiều agent cùng chạy</span></h3>
+    <p class="en">Every post carries a fingerprint (a hash of the RFQ IDs it is about). Saving the same post twice returns the existing one instead of creating a copy. Publishing writes to an append-only log; once any channel logs "posted", the post disappears from every agent's queue. Re-running a flow is therefore safe: it simply skips work already done.</p>
+    <p class="vi">Mỗi bài có một "dấu vân tay" (hash của các RFQ mà bài nói tới). Lưu cùng một bài hai lần sẽ trả về bài cũ thay vì tạo bản sao. Khi đăng, hệ thống ghi vào một log chỉ-thêm (append-only); khi bất kỳ kênh nào ghi "đã đăng", bài biến mất khỏi hàng chờ của mọi agent. Vì vậy chạy lại một luồng là an toàn: nó chỉ bỏ qua phần việc đã làm.</p>
+  </div>
+
+
+  <div class="col stack">
+    <h3><span class="en">How one publisher fills about 25 channels</span><span class="vi">Một agent đăng bài phủ khoảng 25 kênh như thế nào</span></h3>
+    <p class="en">Channels are grouped into small sets. In each set, one channel <strong>chooses</strong> the day's posts and the others <strong>copy</strong> that exact set. Only the choosing channels ever make a decision, so the rest cannot drift.</p>
+    <p class="vi">Các kênh được chia thành những nhóm nhỏ. Trong mỗi nhóm, một kênh <strong>chọn</strong> bài trong ngày, các kênh còn lại <strong>đăng lại</strong> đúng bộ bài đó. Chỉ những kênh chọn bài mới phải ra quyết định, nên các kênh còn lại không thể lệch nhau.</p>
+  </div>
+  <div class="pairs">
+    <div class="pair">
+      <span class="lbl"><span class="en">Main set</span><span class="vi">Nhóm chính</span></span>
+      <div class="chain"><span class="node drv"><span class="en">Company page</span><span class="vi">Trang công ty</span></span><span class="ar">→</span><span class="node mir"><span class="en">Linked profile</span><span class="vi">Tài khoản cá nhân</span></span><span class="ar">+</span><span class="node mir">Facebook</span></div>
+      <span class="muted" style="font-size:.88rem"><span class="en">Chooses from all industries.</span><span class="vi">Chọn bài từ mọi ngành hàng.</span></span>
+    </div>
+    <div class="pair">
+      <span class="lbl"><span class="en">Industry sets</span><span class="vi">Nhóm theo ngành</span></span>
+      <div class="chain"><span class="node drv"><span class="en">Industry profile</span><span class="vi">Tài khoản theo ngành</span></span><span class="ar">→</span><span class="node mir"><span class="en">Industry page</span><span class="vi">Trang ngành</span></span></div>
+      <span class="muted" style="font-size:.88rem"><span class="en">Chooses only posts that match its industry (rice, coffee, seafood…), exact match first, related industries second.</span><span class="vi">Chỉ chọn bài khớp ngành của mình (gạo, cà phê, thủy sản…), khớp chính xác trước, ngành liên quan sau.</span></span>
+    </div>
+  </div>
+  <div class="col stack">
+    <p class="en">Every chooser gets the same daily mix of post types, and gaps are filled in a fixed order rather than invented:</p>
+    <p class="vi">Kênh chọn bài nào cũng nhận cùng một cơ cấu dạng bài mỗi ngày, và chỗ thiếu được lấp theo thứ tự cố định chứ không bịa thêm:</p>
+    <div class="quota"><span>RFQ</span><span>Global insight</span><span>Market insight</span><span class="muted"><span class="en">gap → product → insight → leave empty</span><span class="vi">thiếu → sản phẩm → insight → để trống</span></span></div>
+    <p class="en">Posts are spread across the day in Vietnam time, and the same post on two linked accounts goes out at least an hour apart.</p>
+    <p class="vi">Bài được rải đều trong ngày theo giờ Việt Nam, và cùng một bài trên hai tài khoản liên kết đăng cách nhau ít nhất một tiếng.</p>
+  </div>
+
+  <div class="col stack">
+    <h3><span class="en">Every post is checked before it goes out</span><span class="vi">Mọi bài đều được kiểm tra trước khi đăng</span></h3>
+    <p class="en">Before scheduling, the agent opens each post's image and compares it with the text: same product, same numbers, same language. Right before sending, it checks that the text and image in the request are exactly the stored ones. A post that fails is swapped for the next candidate. The agent never patches it, and the failure is reported back to the writing flow.</p>
+    <p class="vi">Trước khi lên lịch, agent mở ảnh của từng bài và so với nội dung: đúng sản phẩm, đúng con số, đúng ngôn ngữ. Ngay trước khi gửi, nó kiểm tra nội dung và ảnh trong yêu cầu gửi đi trùng khớp với bản đã lưu. Bài nào không đạt sẽ được thay bằng bài kế tiếp. Agent không bao giờ tự vá, và lỗi được báo lại cho luồng viết bài.</p>
+  </div>
+  <div class="col stack">
+    <h3><span class="en">Four kinds of posts, not just buying requests</span><span class="vi">Bốn dạng bài, không chỉ có yêu cầu mua hàng</span></h3>
+    <p class="en">Each kind has its own writing agent, its own templates and its own image style, but all of them land in the same library and go through the same publisher. Adding a new kind means adding a new writer, nothing else changes.</p>
+    <p class="vi">Mỗi dạng có agent viết riêng, template riêng và kiểu ảnh riêng, nhưng tất cả cùng vào một thư viện bài và đi qua cùng một agent đăng. Thêm dạng bài mới chỉ cần thêm một agent viết, phần còn lại giữ nguyên.</p>
+  </div>
+  <div class="families">
+    <div class="fam">
+      <span class="src"><span class="en">Platform data · demand</span><span class="vi">Dữ liệu nền tảng · cầu</span></span>
+      <h3>RFQ</h3>
+      <p><span class="en">A verified buyer's request. Written in 3 templates per lead, with a "Buyer looking for" banner.</span><span class="vi">Yêu cầu của một người mua đã xác minh. Viết theo 3 template cho mỗi lead, kèm banner "Buyer đang tìm mua".</span></p>
+      <span class="ex"><span class="en">"A buyer in the UAE needs 32 MT of cashew W320, CIF Jebel Ali."</span><span class="vi">"Người mua tại UAE cần 32 tấn hạt điều W320, CIF Jebel Ali."</span></span>
+    </div>
+    <div class="fam">
+      <span class="src"><span class="en">Platform data · supply</span><span class="vi">Dữ liệu nền tảng · cung</span></span>
+      <h3><span class="en">Product</span><span class="vi">Sản phẩm</span></h3>
+      <p><span class="en">The mirror image of RFQ: a verified supplier's listing, passed through the same kind of quality gate. Each listing gets 2 of 3 templates, picked at random so the feed doesn't repeat itself. The banner shows price, MOQ and terms.</span><span class="vi">Phiên bản ngược lại của RFQ: sản phẩm của nhà cung cấp đã xác minh, qua cùng kiểu bộ lọc chất lượng. Mỗi sản phẩm lấy ngẫu nhiên 2 trong 3 template để bảng tin không lặp. Banner hiển thị giá, MOQ và điều khoản.</span></p>
+      <span class="ex"><span class="en">"Available: Robusta coffee Grade 1, FOB Ho Chi Minh City."</span><span class="vi">"Sẵn hàng: cà phê Robusta loại 1, FOB TP.HCM."</span></span>
+    </div>
+    <div class="fam">
+      <span class="src"><span class="en">Platform data · aggregated</span><span class="vi">Dữ liệu nền tảng · tổng hợp</span></span>
+      <h3>Market insight</h3>
+      <p><span class="en">Statistics across all buying requests in one industry and market, in 3 formats:</span><span class="vi">Thống kê trên toàn bộ yêu cầu mua của một ngành và thị trường, theo 3 dạng:</span></p>
+      <ul>
+        <li><span class="en">which payment terms buyers ask for (share in %)</span><span class="vi">người mua hay yêu cầu điều khoản thanh toán nào (tỷ lệ %)</span></li>
+        <li><span class="en">which delivery terms they prefer (FOB, CIF…)</span><span class="vi">họ chuộng điều khoản giao hàng nào (FOB, CIF…)</span></li>
+        <li><span class="en">which countries are buying the most (request counts)</span><span class="vi">nước nào đang mua nhiều nhất (số yêu cầu)</span></li>
+      </ul>
+      <p><span class="en">Written not to overclaim: a percentage is a share of stated terms, never a number of buyers. The method is explained in the first comment.</span><span class="vi">Viết theo nguyên tắc không phóng đại: tỷ lệ % là tỷ lệ trên các điều khoản được nêu, không phải số người mua. Cách tính được giải thích ở bình luận đầu tiên.</span></p>
+    </div>
+    <div class="fam ext">
+      <span class="src"><span class="en">External data · web</span><span class="vi">Dữ liệu bên ngoài · web</span></span>
+      <h3>Global market insight</h3>
+      <p><span class="en">An article-style post (about 250–450 words) on one commodity's world market, built from recent public statistics, with up to 4 key findings and a link back to that industry on the platform.</span><span class="vi">Bài dạng bài viết (khoảng 250–450 chữ) về thị trường thế giới của một mặt hàng, dựng từ số liệu công khai gần đây, tối đa 4 phát hiện chính và link về đúng ngành đó trên nền tảng.</span></p>
+      <span class="ex"><span class="en">"Global rice trade in 2026: who is buying, and at what price."</span><span class="vi">"Thương mại gạo thế giới 2026: ai đang mua, và mua giá nào."</span></span>
+    </div>
+  </div>
+
+  <div class="col stack">
+    <h3><span class="en">The global insight flow</span><span class="vi">Luồng global market insight</span></h3>
+    <p class="en">This is the only flow that uses data from outside the platform, so it carries the highest risk of getting a fact wrong. The agent picks the topic itself and has to back every number with a source.</p>
+    <p class="vi">Đây là luồng duy nhất dùng dữ liệu ngoài nền tảng, nên rủi ro sai số liệu cao nhất. Agent tự chọn chủ đề và phải có nguồn cho mọi con số.</p>
+  </div>
+  <div class="flow" aria-label="Global insight flow">
+    <div class="step"><span class="n">1</span><b><span class="en">Pick a commodity</span><span class="vi">Chọn mặt hàng</span></b><p><span class="en">From the platform's most active industries, so the topic always has a page to link to</span><span class="vi">Từ các ngành hoạt động mạnh nhất trên nền tảng, nên chủ đề luôn có trang để dẫn link</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">2</span><b><span class="en">Search the web</span><span class="vi">Tìm trên web</span></b><p><span class="en">One targeted search and read per post; data must be from 2025–2026</span><span class="vi">Một lần tìm và đọc có mục tiêu cho mỗi bài; số liệu phải từ 2025–2026</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">3</span><b><span class="en">Write</span><span class="vi">Viết bài</span></b><p><span class="en">Headline, findings with sources, closing, link to the platform</span><span class="vi">Tiêu đề, các phát hiện kèm nguồn, kết bài, link về nền tảng</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">4</span><b><span class="en">Thumbnail</span><span class="vi">Ảnh bìa</span></b><p><span class="en">The server writes the image prompt and renders it from a fixed template</span><span class="vi">Server tự viết prompt ảnh và dựng ảnh theo template cố định</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">LIBRARY</span><b><span class="en">Post library</span><span class="vi">Thư viện bài</span></b><p><span class="en">Then published like any other post</span><span class="vi">Sau đó được đăng như mọi bài khác</span></p></div>
+  </div>
+  <div class="gate">
+    <div><b><span class="en">No stale data</span><span class="vi">Không dùng số liệu cũ</span></b><span><span class="en">If a commodity has no recent figures, it is put on a 30-day cooldown instead of being written with old numbers.</span><span class="vi">Mặt hàng không có số liệu mới sẽ bị tạm gác 30 ngày, thay vì viết bằng số cũ.</span></span></div>
+    <div><b><span class="en">No repeats</span><span class="vi">Không lặp chủ đề</span></b><span><span class="en">An industry covered in the last 14 days is skipped automatically.</span><span class="vi">Ngành đã có bài trong 14 ngày gần nhất sẽ tự động bị bỏ qua.</span></span></div>
+    <div><b><span class="en">Topic and link always match</span><span class="vi">Chủ đề và link luôn khớp</span></b><span><span class="en">The commodity and the platform link come from the same source, so a rice post never links to coffee.</span><span class="vi">Mặt hàng và link về nền tảng lấy từ cùng một nguồn, nên bài về gạo không bao giờ dẫn sang trang cà phê.</span></span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow" style="color:var(--amber)"><span class="en">Part 2</span><span class="vi">Phần 2</span></span>
+    <h2><span class="en">The sales assistant: one sentence in, one approved post out</span><span class="vi">Trợ lý sales: gõ một câu, ra một bài đã duyệt</span></h2>
+  </div>
+  <div class="col stack">
+    <p class="en">Sales staff connect the company tool server to their own Claude or ChatGPT account (they log in with their platform account) and add one skill. From then on they describe the post they want in normal words. The agent fills a posting form from what they said, asks only for what is missing, and never posts without an explicit OK.</p>
+    <p class="vi">Sales kết nối tool server của công ty vào tài khoản Claude hoặc ChatGPT của mình (đăng nhập bằng tài khoản nền tảng) và cài một skill. Từ đó họ chỉ cần mô tả bài muốn đăng bằng lời thường. Agent điền một "phiếu đăng bài" từ lời sales, chỉ hỏi những mục còn thiếu, và không bao giờ đăng khi chưa có chữ OK.</p>
+  </div>
+
+  <div class="flow-label">
+    <i><span class="sw" style="background:var(--surface)"></span><span class="en">agent step</span><span class="vi">bước của agent</span></i>
+    <i><span class="sw" style="background:var(--amber-soft)"></span><span class="en">salesperson decides</span><span class="vi">sales quyết định</span></i>
+  </div>
+  <div class="flow" aria-label="Sales flow">
+    <div class="step human"><span class="n">1</span><b><span class="en">Describe</span><span class="vi">Mô tả</span></b><p><span class="en">"1 RFQ post on rice, English, LinkedIn, 9am tomorrow"</span><span class="vi">"1 bài RFQ ngành gạo, tiếng Anh, LinkedIn, 9h sáng mai"</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">2</span><b><span class="en">Find source</span><span class="vi">Tìm nguồn</span></b><p><span class="en">Search verified leads by keyword, pick the most complete</span><span class="vi">Tìm lead đã xác minh theo từ khoá, chọn lead đầy đủ nhất</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step human"><span class="n">3</span><b><span class="en">Approve text</span><span class="vi">Duyệt nội dung</span></b><p><span class="en">Agent shows the full draft; sales says OK or asks for edits</span><span class="vi">Agent đưa nguyên văn bản nháp; sales OK hoặc yêu cầu sửa</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step human"><span class="n">4</span><b><span class="en">Final preview</span><span class="vi">Xem trước</span></b><p><span class="en">Text, image, channel and time on one screen</span><span class="vi">Nội dung, ảnh, kênh và giờ trên một màn hình</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">5</span><b><span class="en">Save, post, log</span><span class="vi">Lưu, đăng, ghi log</span></b><p><span class="en">Saved under this salesperson, scheduled via Postiz</span><span class="vi">Lưu dưới tên sales đó, lên lịch qua Postiz</span></p></div>
+  </div>
+
+  <div class="chat" aria-label="Example conversation">
+    <span class="note"><span class="en">Illustrative conversation (simplified)</span><span class="vi">Hội thoại minh hoạ (rút gọn)</span></span>
+    <div class="msg user"><span class="en">Make a post about a cashew buyer, in English.</span><span class="vi">Làm 1 bài về người mua hạt điều, tiếng Anh nhé.</span></div>
+    <div class="msg ai">
+      <span class="en">Here is your posting form. I need three more things:</span><span class="vi">Đây là phiếu đăng bài. Mình cần thêm 3 thông tin:</span>
+      <div class="form">
+        <span><span class="en">Type</span><span class="vi">Loại bài</span></span><span class="ok">RFQ ✓ <span class="muted">"<span class="en">a cashew buyer</span><span class="vi">người mua hạt điều</span>"</span></span>
+        <span>Keyword</span><span class="ok">cashew ✓</span>
+        <span><span class="en">Language</span><span class="vi">Ngôn ngữ</span></span><span class="ok">English ✓</span>
+        <span><span class="en">Image</span><span class="vi">Ảnh</span></span><span class="miss">? <span class="en">missing</span><span class="vi">còn thiếu</span></span>
+        <span><span class="en">Channel</span><span class="vi">Kênh</span></span><span class="miss">? <span class="en">missing</span><span class="vi">còn thiếu</span></span>
+        <span><span class="en">Time</span><span class="vi">Giờ đăng</span></span><span class="miss">? <span class="en">missing</span><span class="vi">còn thiếu</span></span>
+      </div>
+    </div>
+    <div class="msg user"><span class="en">No image. Our LinkedIn page, 9am tomorrow.</span><span class="vi">Không ảnh. Trang LinkedIn công ty, 9h sáng mai.</span></div>
+    <div class="msg ai"><span class="en">Found a verified cashew buyer. Here is the full draft. Is this text OK?</span><span class="vi">Đã tìm được một người mua hạt điều đã xác minh. Đây là nguyên văn bản nháp. Nội dung này OK chưa?</span></div>
+    <div class="msg user">OK</div>
+    <div class="msg ai"><span class="en">Preview: LinkedIn page · 09:00 tomorrow (GMT+7) · no image. Type OK to schedule.</span><span class="vi">Xem trước: Trang LinkedIn · 09:00 sáng mai (GMT+7) · không ảnh. Gõ OK để lên lịch.</span></div>
+  </div>
+
+  <div class="col stack">
+    <h3><span class="en">Guardrails: the prompt guides, the server enforces</span><span class="vi">Rào chắn: prompt hướng dẫn, server bắt buộc</span></h3>
+    <p class="muted en">Language models sometimes fill in blanks on their own. For anything that matters, I put the rule in two places: in the skill, so the agent behaves well, and in the server, so a mistake cannot get through.</p>
+    <p class="muted vi">Mô hình ngôn ngữ đôi khi tự điền vào chỗ trống. Với những gì quan trọng, tôi đặt luật ở hai nơi: trong skill, để agent cư xử đúng, và trong server, để có sai cũng không lọt qua được.</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th><span class="en">Risk</span><span class="vi">Rủi ro</span></th><th><span class="en">In the skill</span><span class="vi">Trong skill</span></th><th><span class="en">In the server</span><span class="vi">Trong server</span></th></tr></thead>
+      <tbody>
+        <tr><td><span class="en">Agent posts to the wrong channel or time</span><span class="vi">Agent đăng nhầm kênh hoặc giờ</span></td><td><span class="en">Channel and time must be quoted from the salesperson's own words; otherwise ask. No defaults, even with only one channel.</span><span class="vi">Kênh và giờ phải trích được nguyên văn từ lời sales; không có thì hỏi. Không mặc định, kể cả khi chỉ có một kênh.</span></td><td>–</td></tr>
+        <tr><td><span class="en">Agent quietly changes the search topic</span><span class="vi">Agent âm thầm đổi chủ đề tìm kiếm</span></td><td><span class="en">Keyword may only be translated, never broadened ("ST25" stays "ST25", not "rice"). Empty result means stop and ask.</span><span class="vi">Từ khoá chỉ được dịch, không được mở rộng ("ST25" giữ "ST25", không thành "rice"). Không có kết quả thì dừng và hỏi.</span></td><td>–</td></tr>
+        <tr><td><span class="en">Sales reaches internal tools</span><span class="vi">Sales gọi được tool nội bộ</span></td><td><span class="en">Lists the allowed tools</span><span class="vi">Liệt kê tool được dùng</span></td><td><span class="en">Default deny: the sales role can call only a short allow-list of tools; anything new is blocked automatically.</span><span class="vi">Mặc định cấm: role sales chỉ gọi được một danh sách ngắn tool được phép; tool mới tự động bị chặn.</span></td></tr>
+        <tr><td><span class="en">Two salespeople post the same lead</span><span class="vi">Hai sales đăng trùng một lead</span></td><td>–</td><td><span class="en">Each source can be used once per salesperson; used sources are hidden from that person's search.</span><span class="vi">Mỗi nguồn chỉ được dùng một lần cho mỗi sales; nguồn đã dùng bị ẩn khỏi kết quả tìm của người đó.</span></td></tr>
+        <tr><td><span class="en">Sales posts mix with company posts</span><span class="vi">Bài sales lẫn với bài công ty</span></td><td>–</td><td><span class="en">Each post records who saved it. Sales see only their own posts; company queues never include sales posts. A team lead can be given access to everyone's.</span><span class="vi">Mỗi bài ghi lại ai đã lưu. Sales chỉ thấy bài của mình; hàng chờ của công ty không lẫn bài sales. Trưởng nhóm có thể được mở quyền xem bài của mọi người.</span></td></tr>
+        <tr><td><span class="en">Image links expire or are unsafe</span><span class="vi">Link ảnh hết hạn hoặc không an toàn</span></td><td><span class="en">Ask for a public image link</span><span class="vi">Xin link ảnh công khai</span></td><td><span class="en">Server downloads and re-hosts the image itself (needed because ChatGPT's sandbox has no internet), with safety checks on the address, file type and size.</span><span class="vi">Server tự tải và lưu lại ảnh (cần thiết vì sandbox của ChatGPT không có internet), có kiểm tra an toàn về địa chỉ, định dạng và dung lượng.</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Architecture</span><span class="vi">Kiến trúc</span></span>
+    <h2><span class="en">Agents never touch the database directly</span><span class="vi">Agent không bao giờ chạm thẳng vào database</span></h2>
+    <p class="muted en">Every agent, automatic or used by a salesperson, goes through one internal tool server. The server decides who can see and write what; the agent only decides what to write.</p>
+    <p class="muted vi">Mọi agent, dù tự động hay do sales dùng, đều đi qua một server công cụ nội bộ. Server quyết định ai được xem và ghi gì; agent chỉ quyết định viết gì.</p>
+  </div>
+  <figure class="arch">
+    <svg viewBox="0 0 860 400" role="img" aria-label="Two kinds of agents call one internal tool server through OAuth and a role gate; the server reads quality-scored sources and writes posts and an append-only log; agents publish through a social scheduler." xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker><marker id="ahh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk hot" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="lane" x="5" y="8" width="215" height="282" rx="12"/><text class="lb en" x="17" y="24">AGENTS · ON DEMAND</text><text class="lb vi" x="17" y="24">AGENT · CHẠY KHI CẦN</text><rect class="lane" x="245" y="8" width="335" height="282" rx="12"/><text class="lb en" x="257" y="24">INTERNAL TOOL SERVER</text><text class="lb vi" x="257" y="24">SERVER CÔNG CỤ NỘI BỘ</text><rect class="lane" x="608" y="8" width="247" height="282" rx="12"/><text class="lb en" x="620" y="24">DATA &amp; SERVICES</text><text class="lb vi" x="620" y="24">DỮ LIỆU &amp; DỊCH VỤ</text><rect class="bx " x="22" y="50" width="180" height="64" rx="8"/><text class="t en" x="112.0" y="79.0" text-anchor="middle">Automatic pipeline</text><text class="t vi" x="112.0" y="79.0" text-anchor="middle">Pipeline tự động</text><text class="s en" x="112.0" y="95.0" text-anchor="middle">skills: write, then publish</text><text class="s vi" x="112.0" y="95.0" text-anchor="middle">skill: viết, rồi đăng</text><rect class="bx " x="22" y="170" width="180" height="64" rx="8"/><text class="t en" x="112.0" y="199.0" text-anchor="middle">Sales assistant</text><text class="t vi" x="112.0" y="199.0" text-anchor="middle">Trợ lý sales</text><text class="s en" x="112.0" y="215.0" text-anchor="middle">staff's own chat app</text><text class="s vi" x="112.0" y="215.0" text-anchor="middle">app chat của từng người</text><rect class="bx " x="262" y="40" width="300" height="64" rx="8"/><text class="t en" x="412.0" y="69.0" text-anchor="middle">Sign-in check (OAuth 2.1)</text><text class="t vi" x="412.0" y="69.0" text-anchor="middle">Kiểm tra đăng nhập (OAuth 2.1)</text><text class="s en" x="412.0" y="85.0" text-anchor="middle">valid token · active user · internal role</text><text class="s vi" x="412.0" y="85.0" text-anchor="middle">token hợp lệ · user hoạt động · vai trò nội bộ</text><rect class="bx " x="262" y="128" width="300" height="64" rx="8"/><text class="t en" x="412.0" y="157.0" text-anchor="middle">Tool gate</text><text class="t vi" x="412.0" y="157.0" text-anchor="middle">Cổng công cụ</text><text class="s en" x="412.0" y="173.0" text-anchor="middle">deny by default · sales see only own posts</text><text class="s vi" x="412.0" y="173.0" text-anchor="middle">mặc định chặn · sales chỉ thấy bài của mình</text><rect class="bx " x="262" y="216" width="300" height="64" rx="8"/><text class="t en" x="412.0" y="245.0" text-anchor="middle">Tools</text><text class="t vi" x="412.0" y="245.0" text-anchor="middle">Công cụ</text><text class="s en" x="412.0" y="261.0" text-anchor="middle">find sources · save post · list · mark posted</text><text class="s vi" x="412.0" y="261.0" text-anchor="middle">tìm nguồn · lưu bài · liệt kê · đánh dấu đã đăng</text><rect class="bx st" x="625" y="40" width="212" height="64" rx="8"/><text class="t en" x="731.0" y="69.0" text-anchor="middle">Search index + database</text><text class="t vi" x="731.0" y="69.0" text-anchor="middle">Search index + database</text><text class="s en" x="731.0" y="85.0" text-anchor="middle">quality-scored RFQs &amp; products</text><text class="s vi" x="731.0" y="85.0" text-anchor="middle">RFQ &amp; sản phẩm đã chấm điểm</text><rect class="bx st" x="625" y="128" width="212" height="64" rx="8"/><text class="t en" x="731.0" y="157.0" text-anchor="middle">Post table + post log</text><text class="t vi" x="731.0" y="157.0" text-anchor="middle">Bảng bài viết + log</text><text class="s en" x="731.0" y="173.0" text-anchor="middle">hash dedupe · append-only log</text><text class="s vi" x="731.0" y="173.0" text-anchor="middle">chống trùng · log chỉ ghi thêm</text><rect class="bx ai" x="625" y="216" width="212" height="64" rx="8"/><text class="t en" x="731.0" y="245.0" text-anchor="middle">Image generation</text><text class="t vi" x="731.0" y="245.0" text-anchor="middle">Sinh ảnh</text><text class="s en" x="731.0" y="261.0" text-anchor="middle">remove background → CDN</text><text class="s vi" x="731.0" y="261.0" text-anchor="middle">tách nền → CDN</text><rect class="bx ex" x="22" y="318" width="180" height="64" rx="8"/><text class="t en" x="112.0" y="347.0" text-anchor="middle">Social scheduler</text><text class="t vi" x="112.0" y="347.0" text-anchor="middle">Công cụ lên lịch</text><text class="s en" x="112.0" y="363.0" text-anchor="middle">Facebook · LinkedIn · Threads</text><text class="s vi" x="112.0" y="363.0" text-anchor="middle">Facebook · LinkedIn · Threads</text><rect class="bx ai" x="625" y="318" width="212" height="64" rx="8"/><text class="t en" x="731.0" y="347.0" text-anchor="middle">Scoring job · every 8h</text><text class="t vi" x="731.0" y="347.0" text-anchor="middle">Job chấm điểm · mỗi 8 giờ</text><text class="s en" x="731.0" y="363.0" text-anchor="middle">LLM checks feed the sources</text><text class="s vi" x="731.0" y="363.0" text-anchor="middle">LLM chấm để làm nguồn bài</text><path class="ar hot" d="M202 82 H232 V64 H262" marker-end="url(#ahh)"/><text class="al en" x="232" y="56" text-anchor="middle">MCP</text><text class="al vi" x="232" y="56" text-anchor="middle">MCP</text><path class="ar hot" d="M202 202 H232 V80 H262" marker-end="url(#ahh)"/><path class="ar" d="M412 104 V128" marker-end="url(#ah)"/><path class="ar" d="M412 192 V216" marker-end="url(#ah)"/><path class="ar" d="M562 248 H594 V72 H625" marker-end="url(#ah)"/><path class="ar" d="M594 160 H625" marker-end="url(#ah)"/><path class="ar" d="M594 248 H625" marker-end="url(#ah)"/><path class="ar" d="M112 234 V318" marker-end="url(#ah)"/><text class="al en" x="118" y="278">publish</text><text class="al vi" x="118" y="278">đăng bài</text><path class="ar dash" d="M60 114 V130 H13 V350 H22" marker-end="url(#ah)"/><path class="ar" d="M837 350 H850 V72 H837" marker-end="url(#ah)"/></svg>
+    <div class="arch-key">
+      <span><i style="background:var(--amber-soft);border-color:var(--amber)"></i><span class="en">LLM step</span><span class="vi">Bước LLM</span></span>
+      <span><i style="background:var(--accent-soft);border-color:var(--accent)"></i><span class="en">Stored data</span><span class="vi">Dữ liệu lưu trữ</span></span>
+      <span><i style="border-style:dashed;border-color:var(--muted)"></i><span class="en">Outside service or user</span><span class="vi">Dịch vụ bên ngoài hoặc người dùng</span></span>
+    </div>
+    <figcaption><span class="en">Publishing happens outside the server on purpose: the agent schedules the post, and only after the scheduler confirms does it call “mark posted”. A failed publish is never recorded as posted.</span><span class="vi">Việc đăng bài cố ý nằm ngoài server: agent lên lịch bài, và chỉ khi công cụ lên lịch xác nhận thì mới gọi “đánh dấu đã đăng”. Một lần đăng thất bại không bao giờ bị ghi là đã đăng.</span></figcaption>
+  </figure>
+  <ul class="clean col" style="margin-top:18px">
+    <li><span class="en"><strong>A separate server for internal tools.</strong> It runs apart from the customer-facing tool server, so internal tools never show up in a public tool list.</span><span class="vi"><strong>Server riêng cho công cụ nội bộ.</strong> Nó chạy tách khỏi server công cụ dành cho khách hàng, nên công cụ nội bộ không bao giờ lộ ra trong danh sách công khai.</span></li>
+    <li><span class="en"><strong>Permissions live in the server, not the prompt.</strong> A salesperson’s agent cannot see, post or mark someone else’s posts, whatever it is asked to do.</span><span class="vi"><strong>Quyền nằm ở server, không nằm trong prompt.</strong> Agent của một sales không thể xem, đăng hay đánh dấu bài của người khác, dù được yêu cầu thế nào.</span></li>
+    <li><span class="en"><strong>Expensive work is shared.</strong> A product image is generated once per category and reused by every later post about that category.</span><span class="vi"><strong>Việc tốn kém được dùng chung.</strong> Ảnh sản phẩm được sinh một lần cho mỗi danh mục và được dùng lại cho mọi bài sau thuộc danh mục đó.</span></li>
+  </ul>
+  <div class="col" style="margin-top:22px" id="perm-matrix">
+    <p style="margin-bottom:10px"><span class="en">Who can call what. Every tool checks the caller's role itself, and a salesperson is refused by default unless the tool opts in:</span><span class="vi">Ai được gọi công cụ nào. Mỗi công cụ tự kiểm tra vai trò người gọi, và sales mặc định bị từ chối trừ khi công cụ cho phép:</span></p>
+    <div class="table-wrap"><table class="perm">
+      <thead><tr><th><span class="en">Tool</span><span class="vi">Công cụ</span></th><th><span class="en">Automatic pipeline</span><span class="vi">Pipeline tự động</span></th><th><span class="en">Salesperson</span><span class="vi">Sales</span></th></tr></thead>
+      <tbody><tr><td><span class="en">Find quality RFQs, products, market insights</span><span class="vi">Tìm RFQ, sản phẩm, insight thị trường chất lượng</span></td><td><span class="y">✓</span></td><td><span class="o"><span class="en">skips what they used</span><span class="vi">bỏ nguồn đã dùng</span></span></td></tr><tr><td><span class="en">Pick categories for global insight posts</span><span class="vi">Chọn danh mục cho bài insight toàn cầu</span></td><td><span class="y">✓</span></td><td><span class="n">—</span></td></tr><tr><td><span class="en">Generate product or template images</span><span class="vi">Sinh ảnh sản phẩm hoặc ảnh mẫu</span></td><td><span class="y">✓</span></td><td><span class="n">—</span></td></tr><tr><td><span class="en">Upload or import an image</span><span class="vi">Tải lên hoặc nhập ảnh</span></td><td><span class="y">✓</span></td><td><span class="y">✓</span></td></tr><tr><td><span class="en">Save a post</span><span class="vi">Lưu bài viết</span></td><td><span class="y">✓</span></td><td><span class="o"><span class="en">sales posts only</span><span class="vi">chỉ bài sales</span></span></td></tr><tr><td><span class="en">List posts ready to publish</span><span class="vi">Liệt kê bài sẵn sàng đăng</span></td><td><span class="o"><span class="en">company posts</span><span class="vi">bài của công ty</span></span></td><td><span class="o"><span class="en">own only</span><span class="vi">chỉ của mình</span></span></td></tr><tr><td><span class="en">Mark a post as published</span><span class="vi">Đánh dấu bài đã đăng</span></td><td><span class="y">✓</span></td><td><span class="o"><span class="en">own only</span><span class="vi">chỉ của mình</span></span></td></tr><tr><td><span class="en">Posting history</span><span class="vi">Lịch sử đăng bài</span></td><td><span class="y">✓</span></td><td><span class="o"><span class="en">own only</span><span class="vi">chỉ của mình</span></span></td></tr></tbody>
+    </table></div>
+    <p class="muted" style="font-size:.88rem;margin-top:8px"><span class="en">A per-user flag can widen a salesperson's view to the whole team, for example for a team lead, without giving them the pipeline's tools.</span><span class="vi">Một cờ theo từng user có thể mở rộng phạm vi xem của một sales ra cả nhóm, ví dụ cho trưởng nhóm, mà không cấp công cụ của pipeline.</span></p>
+  </div>
+</section>
+
+
+
+<section data-add="testing">
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Testing</span><span class="vi">Kiểm thử</span></span>
+    <h2><span class="en">72 tests guard the rules agents cannot see</span><span class="vi">72 test bảo vệ những luật mà agent không nhìn thấy</span></h2>
+    <p class="muted en">Agents follow instructions most of the time; the server has to be right every time. Because every rule lives in the tool server, it can be tested like normal code. Adding the sales assistant came with 72 integration tests that run against the real database inside a transaction that is rolled back afterwards.</p>
+    <p class="muted vi">Agent làm theo hướng dẫn phần lớn thời gian; còn server thì phải đúng mọi lần. Vì mọi luật nằm trong tool server, chúng có thể được kiểm thử như code bình thường. Khi thêm trợ lý cho sales, tôi viết kèm 72 test tích hợp chạy trên database thật, bên trong một transaction được rollback sau khi chạy.</p>
+  </div>
+  <div class="table-wrap" style="margin-top:20px"><table>
+    <thead><tr><th><span class="en">Group</span><span class="vi">Nhóm</span></th><th><span class="en">Tests</span><span class="vi">Số test</span></th><th><span class="en">What it proves</span><span class="vi">Chứng minh điều gì</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Permissions and ownership</span><span class="vi">Phân quyền và quyền sở hữu</span></td><td>18</td><td><span class="en">Sales are blocked from every tool not on their list; a salesperson cannot see, filter or mark another person’s posts; a person with both roles is treated as admin.</span><span class="vi">Sales bị chặn ở mọi công cụ ngoài danh sách cho phép; một sales không thể xem, lọc hay đánh dấu bài của người khác; người có cả hai vai trò được coi là admin.</span></td></tr><tr><td class="k"><span class="en">One source, one post</span><span class="vi">Mỗi nguồn, một bài</span></td><td>18</td><td><span class="en">The same set of sources in a different order is the same post; a lead used alone blocks it in a combination and the other way round; identical free-text posts are merged per person.</span><span class="vi">Cùng một nhóm nguồn theo thứ tự khác vẫn là cùng một bài; một lead đã dùng riêng thì không được dùng trong bài kết hợp và ngược lại; bài viết tự do giống hệt nhau được gộp theo từng người.</span></td></tr><tr><td class="k"><span class="en">Search and categories</span><span class="vi">Tìm kiếm và danh mục</span></td><td>12</td><td><span class="en">A keyword maps to the right categories; the quality gate still applies after the search; no match returns an empty list, not an error.</span><span class="vi">Từ khoá ánh xạ đúng danh mục; cổng chất lượng vẫn áp dụng sau khi tìm; không khớp thì trả danh sách rỗng, không báo lỗi.</span></td></tr><tr><td class="k"><span class="en">Image import safety</span><span class="vi">An toàn khi nhập ảnh</span></td><td>9</td><td><span class="en">Plain http, private addresses, redirects into a private network, oversized files and files that are not images are all refused.</span><span class="vi">Link http thường, địa chỉ nội bộ, redirect vào mạng nội bộ, file quá lớn và file không phải ảnh đều bị từ chối.</span></td></tr><tr><td class="k"><span class="en">Posting history</span><span class="vi">Lịch sử đăng</span></td><td>9</td><td><span class="en">History shows only posted items with every channel they went to, stays within the caller’s own posts, and rejects bad date ranges.</span><span class="vi">Lịch sử chỉ hiện bài đã đăng kèm mọi kênh đã đăng, chỉ trong phạm vi bài của người gọi, và từ chối khoảng ngày không hợp lệ.</span></td></tr><tr><td class="k"><span class="en">Pipeline unchanged</span><span class="vi">Pipeline không bị ảnh hưởng</span></td><td>6</td><td><span class="en">Adding sales did not change the company pipeline: its duplicate check stays global, a posted company post disappears for everyone, and sales posts never enter the company queue.</span><span class="vi">Thêm sales không làm thay đổi pipeline của công ty: kiểm tra trùng vẫn áp dụng toàn hệ thống, bài công ty đã đăng thì biến mất với mọi người, và bài của sales không bao giờ vào hàng đợi của công ty.</span></td></tr></tbody>
+  </table></div>
+  <div class="col" style="margin-top:18px">
+    <p style="margin-bottom:8px"><span class="en">One test, in plain words:</span><span class="vi">Một test, nói bằng lời thường:</span></p>
+    <ol class="clean" style="padding-left:1.4em">
+      <li><span class="en">Salesperson A saves a post about a lead.</span><span class="vi">Sales A lưu một bài viết về một lead.</span></li>
+      <li><span class="en">Salesperson B tries to mark that post as published. The server answers “forbidden”, and nothing is written.</span><span class="vi">Sales B thử đánh dấu bài đó là đã đăng. Server trả về “không có quyền”, và không có gì được ghi.</span></li>
+      <li><span class="en">A marks it as published. The post leaves A’s queue, but B can still post the same lead from their own account.</span><span class="vi">A đánh dấu đã đăng. Bài rời khỏi hàng đợi của A, nhưng B vẫn có thể đăng cùng lead đó từ tài khoản của mình.</span></li>
+    </ol>
+  </div>
+  <p class="col muted" style="font-size:.92rem;margin-top:12px"><span class="en">The last group is the one I value most: when a second kind of user arrives, the first thing to prove is that nothing changed for the existing one.</span><span class="vi">Nhóm cuối là nhóm tôi coi trọng nhất: khi có thêm một kiểu người dùng mới, điều đầu tiên cần chứng minh là không có gì thay đổi với kiểu người dùng cũ.</span></p>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Decisions and trade-offs</span><span class="vi">Quyết định và đánh đổi</span></span>
+    <h2><span class="en">What I chose, and why</span><span class="vi">Tôi đã chọn gì, và vì sao</span></h2>
+  </div>
+  <div class="decisions">
+    <div class="dec"><h3><span class="en">Filter in the server, not in the prompt</span><span class="vi">Lọc ở server, không lọc bằng prompt</span></h3><p><span class="en">Quality rules are SQL and search filters. The agent only sees leads that already passed, so it cannot "decide" a weak lead looks fine.</span><span class="vi">Luật chất lượng nằm ở SQL và bộ lọc tìm kiếm. Agent chỉ thấy lead đã qua lọc, nên không thể "tự thấy" một lead yếu là ổn.</span></p></div>
+    <div class="dec"><h3><span class="en">Every template, not the "best" one</span><span class="vi">Viết mọi template, không chọn một</span></h3><p><span class="en">Flow 1 writes all three templates for each lead. Choosing what to post becomes the publisher's job, which keeps the writer simple and predictable.</span><span class="vi">Luồng 1 viết cả ba template cho mỗi lead. Việc chọn đăng bài nào là của luồng đăng, nhờ vậy luồng viết đơn giản và dễ đoán.</span></p></div>
+    <div class="dec"><h3><span class="en">Sales use their own AI accounts</span><span class="vi">Sales dùng tài khoản AI của chính họ</span></h3><p><span class="en">Sales work in the Claude or ChatGPT they already use, and log in to the tool server with their platform account, so every action is tied to a real person.</span><span class="vi">Sales làm việc trong Claude hoặc ChatGPT quen thuộc, đăng nhập tool server bằng tài khoản nền tảng, nên mọi thao tác đều gắn với một người thật.</span></p></div>
+    <div class="dec"><h3><span class="en">Ownership rules only for sales posts</span><span class="vi">Luật sở hữu chỉ áp cho bài sales</span></h3><p><span class="en">Adding the sales flow did not change the company pipeline at all. Per-person rules apply only to posts created through the sales flow.</span><span class="vi">Thêm luồng sales không làm thay đổi pipeline công ty. Luật theo từng người chỉ áp dụng cho bài tạo từ luồng sales.</span></p></div>
+    <div class="dec"><h3><span class="en">Human checkpoints, kept few</span><span class="vi">Ít chốt duyệt, nhưng chốt chắc</span></h3><p><span class="en">Only three: approve the text, approve a generated image, and a final preview. Enough to stay safe without making sales click through a wizard.</span><span class="vi">Chỉ ba chốt: duyệt nội dung, duyệt ảnh (khi nhờ tạo), và một lần xem trước. Đủ an toàn mà sales không phải bấm qua cả chục bước.</span></p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Outcome</span><span class="vi">Kết quả</span></span>
+    <h2><span class="en">The first four weeks in production</span><span class="vi">Bốn tuần đầu chạy thật</span></h2>
+    <p class="muted en">From the pipeline's posting log, September 2026. Figures are rounded.</p>
+    <p class="muted vi">Số liệu từ nhật ký đăng của pipeline, tháng 9/2026. Số đã được làm tròn.</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td class="num">1,500+</td><td><span class="en">Posts published in the first four weeks, with no copy written by hand.</span><span class="vi">Lượt đăng trong 4 tuần đầu, không có nội dung nào phải viết tay.</span></td></tr>
+        <tr><td class="num"><span class="en">Dozens / day</span><span class="vi">Hàng chục / ngày</span></td><td><span class="en">Dozens of posts a day on active days.</span><span class="vi">Hàng chục lượt đăng mỗi ngày vào những ngày có chạy.</span></td></tr>
+        <tr><td class="num">~25</td><td><span class="en">LinkedIn and Facebook channels, each with its own tracking tag.</span><span class="vi">Kênh LinkedIn và Facebook, mỗi kênh có tag tracking riêng.</span></td></tr>
+        <tr><td class="num"><span class="en">Hundreds</span><span class="vi">Hàng trăm</span></td><td><span class="en">Unique posts, each reused on more than two channels on average. Write once, publish many times.</span><span class="vi">Bài gốc khác nhau, mỗi bài được dùng lại trung bình trên hơn hai kênh. Viết một lần, đăng nhiều nơi.</span></td></tr>
+        <tr><td class="num"><span class="en">Live</span><span class="vi">Đã chạy</span></td><td><span class="en">Sales flow: launched after automated tests on every access rule and a full end-to-end test run on both Claude and ChatGPT.</span><span class="vi">Luồng sales: ra mắt sau khi có test tự động cho mọi luật phân quyền và chạy kiểm thử end-to-end đầy đủ trên cả Claude lẫn ChatGPT.</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Lessons</span><span class="vi">Bài học</span></span>
+    <h2><span class="en">What I would tell the next person</span><span class="vi">Điều tôi muốn chia sẻ</span></h2>
+  </div>
+  <p class="quote"><span class="en">An agent is only as safe as its tools. Write the instructions for good behaviour, then build the server so bad behaviour is impossible.</span><span class="vi">Agent chỉ an toàn bằng bộ tool của nó. Viết hướng dẫn để agent làm đúng, rồi xây server để agent không thể làm sai.</span></p>
+  <ul class="clean col">
+    <li><span class="en"><strong>Make every step safe to repeat.</strong> Agents retry and people re-run things. Fingerprints and an append-only log turned "did this already happen?" into a database lookup.</span><span class="vi"><strong>Mọi bước phải chạy lại được an toàn.</strong> Agent hay thử lại, người dùng hay chạy lại. Dấu vân tay và log chỉ-thêm biến câu hỏi "việc này làm rồi chưa?" thành một truy vấn database.</span></li>
+    <li><span class="en"><strong>Never let the model guess the user's choices.</strong> Asking the agent to quote the user's words for each field stopped it from inventing a channel or a posting time.</span><span class="vi"><strong>Đừng để model đoán lựa chọn của người dùng.</strong> Bắt agent trích nguyên văn lời sales cho từng mục đã chặn được việc tự bịa kênh hay giờ đăng.</span></li>
+    <li><span class="en"><strong>Fix the rule, not just the run.</strong> One run planned its posting window in UTC instead of Vietnam time, so part of the day's posts landed in the middle of the night. I wrote the cause and the fix into the publishing rules, which are versioned with a changelog like code (v7 → v8.2).</span><span class="vi"><strong>Sửa rule, không chỉ sửa lần chạy.</strong> Một lần chạy tính khung giờ đăng theo UTC thay vì giờ Việt Nam, làm một phần bài trong ngày rơi vào giữa đêm. Tôi ghi nguyên nhân và cách sửa vào bộ rule đăng bài, vốn được quản lý phiên bản và có changelog như code (v7 → v8.2).</span></li>
+    <li><span class="en"><strong>Design for the real platforms.</strong> ChatGPT's sandbox cannot upload files, so the server fetches images instead. Testing on each platform early saved a redesign later.</span><span class="vi"><strong>Thiết kế theo nền tảng thật.</strong> Sandbox của ChatGPT không upload file được, nên server tự tải ảnh. Thử sớm trên từng nền tảng giúp tránh phải thiết kế lại về sau.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow">Stack</span>
+  </div>
+  <div class="chips">
+    <span>MCP (Model Context Protocol)</span><span>Claude / ChatGPT</span><span>Agent skills</span><span>Python</span><span>Elasticsearch</span><span>OpenAI SDK</span><span>Text-to-image</span><span>Postiz</span><span>OAuth</span><span>LinkedIn · Facebook</span>
+  </div>
+</section>
+
+<footer>
+  <div class="contact" style="margin:0 0 14px">
+    <a href="https://www.linkedin.com/in/tuanvinh-24a875396">LinkedIn</a>
+    <a href="https://github.com/VinhTuan-maker">GitHub</a>
+  </div>
+  <span class="en">Case study by Tran Vinh Tuan, AI Engineer. A personal portfolio piece describing my own work; not an official company publication. Internal code, prompts, credentials and customer data are not shown, and figures are rounded.</span>
+  <span class="vi">Case study của Trần Vĩnh Tuấn, AI Engineer. Tài liệu portfolio cá nhân mô tả công việc của tôi, không phải ấn phẩm chính thức của công ty. Không hiển thị mã nguồn, prompt, thông tin đăng nhập hay dữ liệu khách hàng; số liệu đã được làm tròn.</span>
+</footer>
+</main>
+
+<script>
+(function(){
+  var b=document.body, en=document.getElementById('btn-en'), vi=document.getElementById('btn-vi');
+  function set(l){
+    b.classList.toggle('lang-vi', l==='vi');
+    document.documentElement.lang = l;
+    en.setAttribute('aria-pressed', l==='en'); vi.setAttribute('aria-pressed', l==='vi');
+    try{localStorage.setItem('cs-lang', l)}catch(e){}
+  }
+  en.addEventListener('click',function(){set('en')});
+  vi.addEventListener('click',function(){set('vi')});
+  var start='en';
+  if(location.hash==='#vi') start='vi';
+  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'en' }catch(e){} }
+  var tabs=document.querySelectorAll('[role="tab"]');
+  tabs.forEach(function(t){t.addEventListener('click',function(){
+    tabs.forEach(function(x){x.setAttribute('aria-selected', x===t)});
+    document.querySelectorAll('.post-body').forEach(function(p){p.hidden = p.getAttribute('data-p')!==t.getAttribute('data-t')});
+  })});
+  set(start);
+})();
+</script>
+
+</body>
+</html>

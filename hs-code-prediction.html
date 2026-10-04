@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HS Code Prediction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with full-width flow, format grid and an input→output example; slim sticky header with EN/VI switch. Same family as the other case studies, ledger-plum accent. */
+:root{
+  --bg:#f3f3f6;          /* paper-catalog grey, indigo-biased */
+  --surface:#ffffff;
+  --ink:#1b1c2b;
+  --muted:#5a5c6e;
+  --line:#d9d9e3;
+  --accent:#6b4a1f;      /* customs brown */
+  --accent-soft:#f1e7d8;
+  --amber:#b4610b;       /* LLM step */
+  --amber-soft:#f8ead9;
+  --good:#1f7a52;
+  --bad:#b3261e;
+  --bad-soft:#f9e3e1;
+  --code-bg:#ebebf1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+    --accent:#d9a866; --accent-soft:#3a2c18; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --bad:#f2867c; --bad-soft:#3d1f1f; --code-bg:#23253a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+  --accent:#d9a866; --accent-soft:#3a2c18; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --bad:#f2867c; --bad-soft:#3d1f1f; --code-bg:#23253a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.65;padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,3.6vw,2.15rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+.vi{display:none}
+body.lang-vi .en{display:none}
+body.lang-vi .vi{display:revert}
+span.vi,span.en{display:inline}
+body.lang-vi span.en{display:none}
+body:not(.lang-vi) span.vi{display:none}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-20px;padding:10px 20px}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.switch{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.switch button{font:500 .8rem var(--f-mono);background:transparent;color:var(--muted);border:0;padding:6px 14px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.switch button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.hero{padding-block:56px 40px;display:flex;flex-direction:column;gap:22px}
+.lede{font-size:1.2rem;color:var(--muted);max-width:60ch}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.meta div{background:var(--surface);padding:14px 16px;min-width:0}
+.meta dt{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.meta dd{margin:4px 0 0;font-weight:500;font-size:.95rem}
+
+section{padding-block:44px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:22px}
+.sec-head{display:flex;flex-direction:column;gap:8px}
+
+.flow{display:flex;flex-wrap:wrap;align-items:stretch}
+.step{flex:1 1 130px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.step .n{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.step b{font-family:var(--f-display);font-size:1.02rem}
+.step p{font-size:.86rem;color:var(--muted);line-height:1.5}
+.step.ai{background:var(--amber-soft);border-color:transparent}
+.step.store{background:var(--accent-soft);border-color:transparent}
+.arrow{flex:0 0 24px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--f-mono)}
+@media (max-width:760px){.flow{flex-direction:column}.arrow{flex-basis:22px;transform:rotate(90deg)}}
+.flow-label{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.flow-label i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.lane{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.formats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.fmt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fmt .ext{font-family:var(--f-mono);font-size:.78rem;color:var(--accent);letter-spacing:.04em}
+.fmt p{font-size:.88rem;color:var(--muted);line-height:1.5}
+
+.example{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.example{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel .tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.doc{font-family:var(--f-mono);font-size:.78rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre-wrap;overflow-x:auto;line-height:1.55}
+.json{font-family:var(--f-mono);font-size:.76rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre;overflow-x:auto;line-height:1.5}
+.json .k{color:var(--accent)}
+.json .r{color:var(--amber)}
+.json .c{color:var(--muted)}
+
+.gate{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.gate div{border-left:3px solid var(--accent);padding:4px 0 4px 14px;min-width:0}
+.gate b{display:block;font-size:.98rem}
+.gate span{font-size:.9rem;color:var(--muted)}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:600}
+.pill{font-family:var(--f-mono);font-size:.72rem;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pill.cloud{background:var(--accent-soft)}
+.pill.self{background:var(--amber-soft)}
+
+.layers{display:flex;flex-direction:column;gap:8px}
+.layer{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.layer b{font-size:.92rem}
+.layer span{font-size:.9rem;color:var(--muted)}
+@media (max-width:560px){.layer{grid-template-columns:1fr}}
+
+.scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.scale div{background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.scale b{font-family:var(--f-display);font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.scale span{font-size:.86rem;color:var(--muted)}
+.scale .good b{color:var(--good)}
+
+.qbar{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.qbar i{display:block;min-width:4px}
+.qbar .ok{background:var(--good)}
+.qbar .part{background:var(--amber)}
+.qbar .bad{background:var(--bad)}
+.qbar .unk{background:var(--muted)}
+.qbar .rej{background:var(--code-bg)}
+.qlegend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.86rem;color:var(--muted);margin-top:10px}
+.qlegend span{display:inline-flex;align-items:center;gap:6px}
+.qlegend i{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+td .catch{font-family:var(--f-mono);font-size:.76rem;color:var(--good)}
+.decisions{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.dec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 28px;padding-block:18px;border-bottom:1px solid var(--line)}
+.dec h3{font-size:1.02rem}
+.dec p{font-size:.95rem;color:var(--muted)}
+@media (max-width:640px){.dec{grid-template-columns:1fr}}
+
+ul.clean{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+.quote{font-family:var(--f-display);font-size:1.35rem;line-height:1.35;border-left:3px solid var(--amber);padding-left:18px;max-width:52ch}
+
+.datanote{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--surface);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.datanote .t{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.datanote dl{margin:0;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:6px 16px;font-size:.9rem}
+.datanote dt{font-weight:600}
+.datanote dd{margin:0;color:var(--muted)}
+@media (max-width:560px){.datanote dl{grid-template-columns:1fr}.datanote dd{margin-bottom:6px}}
+footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+.contact{display:flex;flex-wrap:wrap;gap:10px 20px;margin-bottom:14px}
+@media (prefers-reduced-motion:no-preference){.switch button{transition:background .15s,color .15s}}
+
+
+
+/* architecture figure */
+.arch{margin:22px 0 0;overflow-x:auto}
+.arch svg{display:block;width:100%;min-width:720px;height:auto}
+.arch .bx{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.arch .bx.ai{fill:var(--amber-soft);stroke:var(--amber)}
+.arch .bx.st{fill:var(--accent-soft);stroke:var(--accent)}
+.arch .bx.ex{fill:var(--surface);stroke:var(--muted);stroke-dasharray:4 3}
+.arch .lane{fill:none;stroke:var(--line);stroke-dasharray:6 5;stroke-width:1.2}
+.arch .t{font:600 13px var(--f-body);fill:var(--ink)}
+.arch .s{font:11px var(--f-body);fill:var(--muted)}
+.arch .lb{font:500 10.5px var(--f-mono);fill:var(--muted);letter-spacing:.06em}
+.arch .al{font:500 10.5px var(--f-mono);fill:var(--accent)}
+.arch .ar{fill:none;stroke:var(--muted);stroke-width:1.4}
+.arch .ar.hot{stroke:var(--accent)}
+.arch .ar.dash{stroke-dasharray:4 3}
+.arch .mk{fill:var(--muted)}
+.arch .mk.hot{fill:var(--accent)}
+.arch figcaption{font-size:.88rem;color:var(--muted);margin-top:10px;max-width:68ch}
+.arch-key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.84rem;color:var(--muted);margin-top:8px}
+.arch-key span{display:inline-flex;align-items:center;gap:6px}
+.arch-key i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.chips span span{border:0;padding:0;background:none;font:inherit}
+.runs{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.runs .grp{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+.runs .r{display:grid;grid-template-columns:minmax(0,210px) minmax(0,1fr);gap:12px;align-items:center}
+.runs .lab{font-size:.86rem;color:var(--ink);line-height:1.3}
+.runs .bars{display:flex;flex-direction:column;gap:3px}
+.runs .bar{height:12px;border-radius:3px;position:relative}
+.runs .bar.ex{background:var(--accent)}
+.runs .bar.hd{background:var(--accent-soft);border:1px solid var(--accent)}
+.runs .bar span{position:absolute;left:calc(100% + 6px);top:-3px;font:600 .76rem var(--f-mono);color:var(--muted);white-space:nowrap}
+.runs .r.best .lab{font-weight:700}
+.runs-key{display:flex;gap:18px;font-size:.84rem;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.runs-key i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+@media (max-width:560px){.runs .r{grid-template-columns:1fr}}
+.hs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;font-family:var(--f-mono)}
+.hs div{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.hs b{font-size:1.4rem;color:var(--accent);letter-spacing:.04em}
+.hs span{font-family:var(--f-body);font-size:.84rem;color:var(--muted)}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./" style="color:inherit;text-decoration:none">← <span class="en">All case studies</span><span class="vi">Tất cả case study</span> · Tran Vinh Tuan</a>
+  <div class="switch" role="group" aria-label="Language">
+    <button type="button" id="btn-en" aria-pressed="true">EN</button>
+    <button type="button" id="btn-vi" aria-pressed="false">VI</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<div class="hero">
+  <span class="eyebrow"><span class="en">LLM classification · evaluation</span><span class="vi">Phân loại bằng LLM · đánh giá</span></span>
+  <h1><span class="en">Predicting customs codes: a careful prompt beat RAG</span><span class="vi">Dự đoán mã hải quan: một prompt kỹ lưỡng thắng RAG</span></h1>
+    <p class="en lede">The problem: every product listing and buying request needs a 6-digit HS code, the customs classification used worldwide. I built two ways to predict it from the product name: a prompt-based flow that runs in production, and a retrieval-augmented (RAG) prototype that searches the tariff itself. After re-checking every mismatch by hand, the prompt flow was right about 97% of the time against about 88–90% for RAG, at a similar cost, so it stayed.</p>
+    <p class="vi lede">Bài toán: mỗi tin sản phẩm và mỗi yêu cầu mua đều cần một mã HS 6 số, mã phân loại hải quan dùng trên toàn thế giới. Tôi xây hai cách dự đoán mã từ tên sản phẩm: một luồng dựa trên prompt đang chạy thật, và một bản thử nghiệm RAG tra cứu thẳng trong biểu thuế. Sau khi chấm tay các câu không khớp, luồng prompt đúng khoảng 97% so với khoảng 88–90% của RAG, với chi phí tương đương, nên nó được giữ lại.</p>
+  <dl class="meta">
+    <div><dt><span class="en">Role</span><span class="vi">Vai trò</span></dt><dd><span class="en">Built both flows and the evaluation</span><span class="vi">Xây cả hai luồng và bộ đánh giá</span></dd></div>
+    <div><dt><span class="en">Test set</span><span class="vi">Bộ test</span></dt><dd><span class="en">~420 product names, codes reviewed by hand</span><span class="vi">~420 tên sản phẩm, mã được rà soát thủ công</span></dd></div>
+    <div><dt><span class="en">Result</span><span class="vi">Kết quả</span></dt><dd><span class="en">Hand-checked: prompt ~97%<br>RAG ~88–90%</span><span class="vi">Chấm tay: prompt ~97%<br>RAG ~88–90%</span></dd></div>
+    <div><dt><span class="en">Built</span><span class="vi">Thời gian</span></dt><dd><span class="en">Jun – Sep 2026</span><span class="vi">06 – 09/2026</span></dd></div>
+  </dl>
+</div>
+
+<aside class="datanote" aria-label="About this case study">
+  <span class="t"><span class="en">About this case study and its data</span><span class="vi">Về case study này và số liệu</span></span>
+  <dl>
+    <dt><span class="en">What this is</span><span class="vi">Đây là gì</span></dt><dd><span class="en">A personal portfolio piece describing work I did as an engineer. My employer is not named on purpose; the page is my own description, not an official document.</span><span class="vi">Tài liệu portfolio cá nhân, mô tả công việc tôi làm khi là kỹ sư. Nơi tôi làm việc được cố ý không nêu tên; đây là mô tả của riêng tôi, không phải tài liệu chính thức.</span></dd>
+    <dt><span class="en">Numbers</span><span class="vi">Số liệu</span></dt><dd><span class="en">Accuracy figures come from my own offline evaluation on about 420 product names: labels drafted by a strong model and re-validated by a person; each flow compared automatically with those labels, then every mismatch re-checked by hand. Figures are rounded. The tariff itself is public.</span><span class="vi">Số liệu độ chính xác lấy từ bộ đánh giá offline của tôi trên khoảng 420 tên sản phẩm: nhãn do một mô hình mạnh soạn và được người kiểm tra lại; mỗi luồng được so tự động với các nhãn đó, rồi mọi câu không khớp được chấm tay lại. Số liệu đã làm tròn. Bản thân biểu thuế là dữ liệu công khai.</span></dd>
+    <dt><span class="en">Examples</span><span class="vi">Ví dụ</span></dt><dd><span class="en">Product names in the examples are generic commodity names, not real listings.</span><span class="vi">Tên sản phẩm trong ví dụ là tên hàng hoá chung, không phải tin đăng thật.</span></dd>
+    <dt><span class="en">Not included</span><span class="vi">Không có trong trang</span></dt><dd><span class="en">Source code, full prompts, credentials, server details, and any customer or listing data.</span><span class="vi">Mã nguồn, prompt đầy đủ, thông tin đăng nhập, thông tin server, và mọi dữ liệu khách hàng hay tin đăng.</span></dd>
+  </dl>
+</aside>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">The problem</span><span class="vi">Bài toán</span></span>
+    <h2><span class="en">Six digits, and one detail decides them</span><span class="vi">Sáu chữ số, và một chi tiết quyết định tất cả</span></h2>
+  </div>
+  <div class="hs" aria-label="An HS code read as chapter, heading and subheading"><div><b>09</b><span><span class="en">chapter: coffee, tea, spices</span><span class="vi">chương: cà phê, chè, gia vị</span></span></div><div><b>0901</b><span><span class="en">heading: coffee</span><span class="vi">heading: cà phê</span></span></div><div><b>0901 11</b><span><span class="en">subheading: not roasted, not decaffeinated</span><span class="vi">phân nhóm: chưa rang, chưa khử caffeine</span></span></div></div>
+  <div class="col stack" style="margin-top:16px">
+    <p class="en">An HS code narrows down in three steps: chapter, heading, subheading. Getting the heading right already tells customs, logistics and buyers what the product is; the last two digits often hang on one word.</p>
+    <p class="vi">Mã HS thu hẹp dần qua ba bước: chương, heading, phân nhóm. Đúng heading là đã cho hải quan, logistics và người mua biết đó là hàng gì; hai số cuối thường chỉ phụ thuộc vào một chữ.</p>
+  </div>
+  <ul class="clean col" style="margin-top:12px">
+    <li><span class="en"><strong>Names are written for trade, not for customs.</strong> “Robusta S18 grade 1, FOB, 20ft” carries a grade, a trade term and a container; none of them matters for the code.</span><span class="vi"><strong>Tên được viết cho buôn bán, không phải cho hải quan.</strong> “Robusta S18 grade 1, FOB, 20ft” có hạng, điều kiện giao hàng và loại container; không cái nào ảnh hưởng tới mã.</span></li>
+    <li><span class="en"><strong>One detail decides.</strong> Roasted or not, frozen or fresh, whole or broken rice: each sends the same product to a different code.</span><span class="vi"><strong>Một chi tiết quyết định.</strong> Rang hay chưa rang, đông lạnh hay tươi, gạo nguyên hay gạo tấm: mỗi chi tiết đưa cùng một sản phẩm sang một mã khác.</span></li>
+    <li><span class="en"><strong>Short names are ambiguous.</strong> Plain “sugar” or “rice” needs a sensible trade default, or the answer changes from run to run.</span><span class="vi"><strong>Tên ngắn thì mơ hồ.</strong> “Sugar” hay “rice” trơn cần một mặc định thương mại hợp lý, nếu không câu trả lời sẽ đổi qua mỗi lần chạy.</span></li>
+    <li><span class="en"><strong>The standard itself moves.</strong> Editions renumber codes, so even a “correct” label can be out of date.</span><span class="vi"><strong>Chính tiêu chuẩn cũng thay đổi.</strong> Mỗi phiên bản biểu thuế đánh số lại một số mã, nên kể cả nhãn “đúng” cũng có thể đã lỗi thời.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Two approaches</span><span class="vi">Hai cách tiếp cận</span></span>
+    <h2><span class="en">Ask an expert, or look it up and choose</span><span class="vi">Hỏi một chuyên gia, hay tra cứu rồi chọn</span></h2>
+    <p class="en muted">Both flows take the same product name and return a 6-digit code. They differ in where the knowledge comes from: in A it is the model plus a prompt written like a customs specialist’s checklist; in B it is the tariff text, retrieved and handed to the model to choose from.</p>
+    <p class="vi muted">Cả hai luồng nhận cùng một tên sản phẩm và trả về một mã 6 số. Chúng khác nhau ở nguồn kiến thức: ở A là mô hình cộng với một prompt viết như checklist của chuyên viên hải quan; ở B là văn bản biểu thuế, được truy xuất rồi đưa cho mô hình chọn.</p>
+  </div>
+  <figure class="arch">
+    <svg viewBox="0 0 860 360" role="img" aria-label="Flow A: product name, clean name, dictionary lookup that reuses earlier answers on a close match, otherwise a customs-specialist prompt, and the new code is written back to the dictionary. Flow B: product name, optional rewrite into customs wording, hybrid vector and keyword retrieval over about 7,900 tariff lines, top 20 candidates fused by rank, and a model that picks one code with confidence and reasoning." xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker><marker id="ahh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk hot" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="lane" x="5" y="8" width="850" height="160" rx="12"/><text class="lb en" x="17" y="24">A · PROMPT FLOW · IN PRODUCTION</text><text class="lb vi" x="17" y="24">A · LUỒNG PROMPT · ĐANG CHẠY THẬT</text><rect class="lane" x="5" y="190" width="850" height="160" rx="12"/><text class="lb en" x="17" y="206">B · RAG PROTOTYPE</text><text class="lb vi" x="17" y="206">B · BẢN THỬ NGHIỆM RAG</text><rect class="bx ex" x="18" y="60" width="140" height="70" rx="8"/><text class="t en" x="88.0" y="92.0" text-anchor="middle">Product name</text><text class="t vi" x="88.0" y="92.0" text-anchor="middle">Tên sản phẩm</text><text class="s en" x="88.0" y="108.0" text-anchor="middle">as the user typed it</text><text class="s vi" x="88.0" y="108.0" text-anchor="middle">như người dùng nhập</text><rect class="bx ai" x="190" y="60" width="140" height="70" rx="8"/><text class="t en" x="260.0" y="85.0" text-anchor="middle">Clean name</text><text class="t vi" x="260.0" y="85.0" text-anchor="middle">Tên chuẩn hoá</text><text class="s en" x="260.0" y="101.0" text-anchor="middle">small LLM call, shared</text><text class="s vi" x="260.0" y="101.0" text-anchor="middle">một lượt LLM nhỏ, dùng chung</text><text class="s en" x="260.0" y="115.0" text-anchor="middle">with category prediction</text><text class="s vi" x="260.0" y="115.0" text-anchor="middle">với dự đoán danh mục</text><rect class="bx st" x="362" y="60" width="140" height="70" rx="8"/><text class="t en" x="432.0" y="85.0" text-anchor="middle">Dictionary</text><text class="t vi" x="432.0" y="85.0" text-anchor="middle">Từ điển</text><text class="s en" x="432.0" y="101.0" text-anchor="middle">earlier answers,</text><text class="s vi" x="432.0" y="101.0" text-anchor="middle">các câu trả lời trước,</text><text class="s en" x="432.0" y="115.0" text-anchor="middle">vector search</text><text class="s vi" x="432.0" y="115.0" text-anchor="middle">tìm bằng vector</text><rect class="bx ai" x="534" y="60" width="140" height="70" rx="8"/><text class="t en" x="604.0" y="85.0" text-anchor="middle">Customs prompt</text><text class="t vi" x="604.0" y="85.0" text-anchor="middle">Prompt hải quan</text><text class="s en" x="604.0" y="101.0" text-anchor="middle">rules, trade defaults,</text><text class="s vi" x="604.0" y="101.0" text-anchor="middle">luật, mặc định thương mại,</text><text class="s en" x="604.0" y="115.0" text-anchor="middle">tie-break examples</text><text class="s vi" x="604.0" y="115.0" text-anchor="middle">ví dụ phân xử</text><rect class="bx st" x="706" y="60" width="140" height="70" rx="8"/><text class="t en" x="776.0" y="85.0" text-anchor="middle">6-digit code</text><text class="t vi" x="776.0" y="85.0" text-anchor="middle">Mã 6 số</text><text class="s en" x="776.0" y="101.0" text-anchor="middle">written back to</text><text class="s vi" x="776.0" y="101.0" text-anchor="middle">được ghi ngược vào</text><text class="s en" x="776.0" y="115.0" text-anchor="middle">the dictionary</text><text class="s vi" x="776.0" y="115.0" text-anchor="middle">từ điển</text><path class="ar" d="M158 95 H190" marker-end="url(#ah)"/><path class="ar" d="M330 95 H362" marker-end="url(#ah)"/><path class="ar" d="M502 95 H534" marker-end="url(#ah)"/><path class="ar" d="M674 95 H706" marker-end="url(#ah)"/><path class="ar hot" d="M432 60 V36 H776 V60" marker-end="url(#ahh)"/><text class="al en" x="604" y="30" text-anchor="middle">close match: reuse, no LLM call</text><text class="al vi" x="604" y="30" text-anchor="middle">gần giống: dùng lại, không gọi LLM</text><path class="ar dash" d="M776 130 V148 H432 V130" marker-end="url(#ah)"/><text class="al en" x="604" y="162" text-anchor="middle">new answer grows the dictionary</text><text class="al vi" x="604" y="162" text-anchor="middle">câu trả lời mới làm từ điển lớn thêm</text><rect class="bx ex" x="18" y="242" width="140" height="70" rx="8"/><text class="t en" x="88.0" y="274.0" text-anchor="middle">Product name</text><text class="t vi" x="88.0" y="274.0" text-anchor="middle">Tên sản phẩm</text><text class="s en" x="88.0" y="290.0" text-anchor="middle">same input</text><text class="s vi" x="88.0" y="290.0" text-anchor="middle">cùng đầu vào</text><rect class="bx ai" x="190" y="242" width="140" height="70" rx="8"/><text class="t en" x="260.0" y="267.0" text-anchor="middle">Rewrite</text><text class="t vi" x="260.0" y="267.0" text-anchor="middle">Viết lại</text><text class="s en" x="260.0" y="283.0" text-anchor="middle">into customs wording</text><text class="s vi" x="260.0" y="283.0" text-anchor="middle">theo cách viết hải quan</text><text class="s en" x="260.0" y="297.0" text-anchor="middle">(optional LLM call)</text><text class="s vi" x="260.0" y="297.0" text-anchor="middle">(lượt LLM tuỳ chọn)</text><rect class="bx st" x="362" y="242" width="140" height="70" rx="8"/><text class="t en" x="432.0" y="267.0" text-anchor="middle">Hybrid retrieval</text><text class="t vi" x="432.0" y="267.0" text-anchor="middle">Truy xuất kết hợp</text><text class="s en" x="432.0" y="283.0" text-anchor="middle">~7,900 tariff lines</text><text class="s vi" x="432.0" y="283.0" text-anchor="middle">~7.900 dòng biểu thuế</text><text class="s en" x="432.0" y="297.0" text-anchor="middle">vector + keyword</text><text class="s vi" x="432.0" y="297.0" text-anchor="middle">vector + từ khoá</text><rect class="bx " x="534" y="242" width="140" height="70" rx="8"/><text class="t en" x="604.0" y="274.0" text-anchor="middle">Top 20 candidates</text><text class="t vi" x="604.0" y="274.0" text-anchor="middle">20 ứng viên đầu</text><text class="s en" x="604.0" y="290.0" text-anchor="middle">fused by rank</text><text class="s vi" x="604.0" y="290.0" text-anchor="middle">gộp theo thứ hạng</text><rect class="bx ai" x="706" y="242" width="140" height="70" rx="8"/><text class="t en" x="776.0" y="267.0" text-anchor="middle">Pick one</text><text class="t vi" x="776.0" y="267.0" text-anchor="middle">Chọn một mã</text><text class="s en" x="776.0" y="283.0" text-anchor="middle">code, matched,</text><text class="s vi" x="776.0" y="283.0" text-anchor="middle">mã, có khớp không,</text><text class="s en" x="776.0" y="297.0" text-anchor="middle">confidence, reasoning</text><text class="s vi" x="776.0" y="297.0" text-anchor="middle">độ tự tin, lý do</text><path class="ar" d="M158 277 H190" marker-end="url(#ah)"/><path class="ar" d="M330 277 H362" marker-end="url(#ah)"/><path class="ar" d="M502 277 H534" marker-end="url(#ah)"/><path class="ar" d="M674 277 H706" marker-end="url(#ah)"/></svg>
+    <div class="arch-key">
+      <span><i style="background:var(--amber-soft);border-color:var(--amber)"></i><span class="en">LLM step</span><span class="vi">Bước LLM</span></span>
+      <span><i style="background:var(--accent-soft);border-color:var(--accent)"></i><span class="en">Stored data</span><span class="vi">Dữ liệu lưu trữ</span></span>
+      <span><i style="border-style:dashed;border-color:var(--muted)"></i><span class="en">Outside service or user</span><span class="vi">Dịch vụ bên ngoài hoặc người dùng</span></span>
+    </div>
+    <figcaption><span class="en">A gets cheaper as it runs: every new answer is stored, so the same or a very similar product never needs the model again. B keeps the tariff in an index and pays for retrieval on every call, but its answer is always one of the real tariff lines.</span><span class="vi">A càng chạy càng rẻ: mỗi câu trả lời mới được lưu lại, nên cùng sản phẩm hoặc sản phẩm rất giống không bao giờ cần gọi mô hình lần nữa. B giữ biểu thuế trong một index và tốn công truy xuất ở mọi lượt gọi, nhưng câu trả lời luôn là một dòng có thật trong biểu thuế.</span></figcaption>
+  </figure>
+  <div class="table-wrap" style="margin-top:18px"><table>
+    <thead><tr><th><span class="en"></span><span class="vi"></span></th><th><span class="en">A · Prompt</span><span class="vi">A · Prompt</span></th><th><span class="en">B · RAG</span><span class="vi">B · RAG</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Knowledge</span><span class="vi">Kiến thức</span></td><td><span class="en">The model’s own knowledge of the tariff, guided by a four-step checklist: strip trade noise, apply trade defaults, follow the code structure, break ties with the official interpretation rules; plus about a dozen hard examples</span><span class="vi">Kiến thức sẵn có của mô hình về biểu thuế, được dẫn bằng checklist bốn bước: bỏ nhiễu thương mại, áp mặc định thương mại, đi theo cấu trúc mã, phân xử bằng quy tắc giải thích chính thức; kèm khoảng một chục ví dụ khó</span></td><td><span class="en">About 7,900 tariff lines embedded once; vector top 30 and keyword top 30 fused by reciprocal rank, top 20 shown to the model</span><span class="vi">Khoảng 7.900 dòng biểu thuế được embed một lần; 30 kết quả vector và 30 kết quả từ khoá gộp theo thứ hạng nghịch đảo, đưa 20 dòng đầu cho mô hình</span></td></tr><tr><td class="k"><span class="en">Output</span><span class="vi">Đầu ra</span></td><td><span class="en">One code</span><span class="vi">Một mã</span></td><td><span class="en">Code, “matched” flag, high/low confidence, one-sentence reason citing the deciding detail</span><span class="vi">Mã, cờ “có khớp”, độ tự tin cao/thấp, một câu lý do nêu chi tiết quyết định</span></td></tr><tr><td class="k"><span class="en">Memory</span><span class="vi">Bộ nhớ</span></td><td><span class="en">Answers are written back to a dictionary; a close match reuses them without a model call</span><span class="vi">Câu trả lời được ghi ngược vào từ điển; tên gần giống thì dùng lại mà không gọi mô hình</span></td><td><span class="en">None; every product is retrieved and judged again</span><span class="vi">Không có; mỗi sản phẩm đều được truy xuất và phán đoán lại</span></td></tr><tr><td class="k"><span class="en">Calls per new product</span><span class="vi">Lượt gọi cho mỗi sản phẩm mới</span></td><td><span class="en">One small call for the clean name (shared with categories), one embedding, one reasoning call only on a dictionary miss</span><span class="vi">Một lượt nhỏ để chuẩn hoá tên (dùng chung với danh mục), một embedding, một lượt suy luận chỉ khi từ điển không có</span></td><td><span class="en">One embedding, one pick call, plus one rewrite call when rewriting is on</span><span class="vi">Một embedding, một lượt chọn mã, thêm một lượt viết lại nếu bật</span></td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Evaluation</span><span class="vi">Đánh giá</span></span>
+    <h2><span class="en">A strict score to iterate, a human check to decide</span><span class="vi">Điểm chặt để thử nghiệm, chấm tay để quyết định</span></h2>
+    <p class="en muted">A score is only as good as its answer key, and an HS code is not always a single right answer: a vague name such as “dried chilli” can be classified more than one valid way. So the evaluation has two parts: build a trusted answer key once, then score every flow against it and look at each disagreement by hand.</p>
+    <p class="vi muted">Điểm số chỉ tốt bằng bộ đáp án, mà mã HS không phải lúc nào cũng chỉ có một đáp án đúng: một tên mơ hồ như “ớt khô” có thể được phân loại theo nhiều cách đều hợp lệ. Vì vậy việc đánh giá gồm hai phần: xây một bộ đáp án đáng tin một lần, rồi chấm mọi luồng dựa trên nó và xem xét từng chỗ không khớp bằng tay.</p>
+  </div>
+  <p class="col" style="margin-top:6px"><strong><span class="en">1 · Building the answer key</span><span class="vi">1 · Xây bộ đáp án</span></strong></p>
+  <div class="flow" aria-label="Ground truth">
+    <div class="step "><span class="n">1</span><b><span class="en">Collect names</span><span class="vi">Gom tên</span></b><p><span class="en">About 500 real product names from listings and requests</span><span class="vi">Khoảng 500 tên sản phẩm thật từ tin đăng và yêu cầu mua</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step ai"><span class="n">2</span><b><span class="en">Strong model drafts</span><span class="vi">Mô hình mạnh soạn nhãn</span></b><p><span class="en">A code for each name, with a confidence level and a short reason</span><span class="vi">Một mã cho mỗi tên, kèm mức độ tự tin và lý do ngắn</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">3</span><b><span class="en">Person re-validates all</span><span class="vi">Người kiểm tra lại toàn bộ</span></b><p><span class="en">Every label checked against the tariff, not only the doubtful ones</span><span class="vi">Mọi nhãn đều được đối chiếu với biểu thuế, không chỉ những nhãn đáng ngờ</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">4</span><b><span class="en">Clean set</span><span class="vi">Bộ sạch</span></b><p><span class="en">About 420 names kept; unclear rows dropped, outdated codes renumbered</span><span class="vi">Giữ khoảng 420 tên; bỏ dòng không rõ, đánh số lại mã lỗi thời</span></p></div>
+  </div>
+  <p class="col" style="margin-top:18px"><strong><span class="en">2 · Scoring a flow</span><span class="vi">2 · Chấm điểm một luồng</span></strong></p>
+  <div class="flow" aria-label="Scoring">
+    <div class="step ai"><span class="n">1</span><b><span class="en">Run the flow</span><span class="vi">Chạy luồng</span></b><p><span class="en">On all ~420 names, same settings as production</span><span class="vi">Trên cả ~420 tên, cùng thiết lập như chạy thật</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">2</span><b><span class="en">Compare automatically</span><span class="vi">So tự động</span></b><p><span class="en">Same code as the key: correct. Takes seconds after every change.</span><span class="vi">Trùng mã với đáp án: đúng. Chỉ mất vài giây sau mỗi thay đổi.</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">3</span><b><span class="en">Re-check mismatches by hand</span><span class="vi">Chấm tay các câu không khớp</span></b><p><span class="en">Is this also a valid classification of this name?</span><span class="vi">Đây có phải cũng là một cách phân loại hợp lệ cho tên này không?</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">4</span><b><span class="en">True accuracy</span><span class="vi">Độ chính xác thật</span></b><p><span class="en">Matches + mismatches judged valid</span><span class="vi">Câu khớp + câu không khớp nhưng được xác nhận hợp lệ</span></p></div>
+  </div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">Only the disagreements need a person, which keeps the hand work small. The automatic score alone undercounts: for vague names, a different code can be just as correct as the one in the key.</p>
+    <p class="vi">Chỉ những chỗ không khớp mới cần người xem, nên khối lượng chấm tay nhỏ. Riêng điểm tự động thì đếm thiếu: với tên mơ hồ, một mã khác có thể đúng không kém mã trong đáp án.</p>
+  </div>
+  <div class="scale">
+    <div class="good"><b>~97%</b><span><span class="en">Prompt flow, true accuracy after re-checking mismatches</span><span class="vi">Luồng prompt, độ chính xác thật sau khi chấm tay câu không khớp</span></span></div>
+    <div><b>~88–90%</b><span><span class="en">RAG prototype, same method</span><span class="vi">Bản thử nghiệm RAG, cùng phương pháp</span></span></div>
+    <div><b>~82% vs ~64%</b><span><span class="en">Right 4-digit heading in the strict automatic score</span><span class="vi">Đúng heading 4 số theo điểm tự động chặt</span></span></div>
+  </div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en"><strong>The automatic score, run by run.</strong> Each change was one run against the same names, so every bar is a measured step. It understates both flows, but the order never changed. The prompt flow was scored without its dictionary, so its bars show the model and prompt alone.</p>
+    <p class="vi"><strong>Điểm tự động qua từng lần chạy.</strong> Mỗi thay đổi là một lần chạy trên cùng bộ tên, nên mỗi thanh là một bước đã đo. Điểm này thấp hơn thực tế ở cả hai luồng, nhưng thứ tự giữa chúng không bao giờ đổi. Luồng prompt được chấm khi không có từ điển, nên các thanh của nó chỉ phản ánh mô hình và prompt.</p>
+  </div>
+  <div class="runs" role="img" aria-label="Exact 6-digit and 4-digit heading accuracy for each evaluation run: the prompt flow rose from 29 to 53 percent exact and reached 81 percent heading; the RAG prototype rose from 27 to 47 percent exact and 64 percent heading.">
+<div class="grp"><span class="en">Prompt flow (A)</span><span class="vi">Luồng prompt (A)</span></div>
+<div class="r"><div class="lab"><span class="en">First prompt, long “verify” step</span><span class="vi">Prompt đầu, có bước “kiểm tra lại” dài</span></div><div class="bars"><div class="bar ex" style="width:25%"><span>29%</span></div><div class="bar hd" style="width:67%"><span>79%</span></div></div></div>
+<div class="r"><div class="lab"><span class="en">Stronger reasoning model</span><span class="vi">Mô hình suy luận mạnh hơn</span></div><div class="bars"><div class="bar ex" style="width:33%"><span>39%</span></div><div class="bar hd" style="width:61%"><span>72%</span></div></div></div>
+<div class="r"><div class="lab"><span class="en">Rewritten prompt: rules + trade defaults</span><span class="vi">Viết lại prompt: luật + mặc định thương mại</span></div><div class="bars"><div class="bar ex" style="width:41%"><span>48%</span></div><div class="bar hd" style="width:69%"><span>81%</span></div></div></div>
+<div class="r best"><div class="lab"><span class="en">Shipped version, corrected labels</span><span class="vi">Bản chạy thật, nhãn đã sửa</span></div><div class="bars"><div class="bar ex" style="width:44%"><span>52%</span></div><div class="bar hd" style="width:70%"><span>82%</span></div></div></div>
+<div class="grp"><span class="en">RAG prototype (B)</span><span class="vi">Bản thử nghiệm RAG (B)</span></div>
+<div class="r"><div class="lab"><span class="en">First retrieval run</span><span class="vi">Lần truy xuất đầu tiên</span></div><div class="bars"><div class="bar ex" style="width:23%"><span>27%</span></div><div class="bar hd" style="width:37%"><span>43%</span></div></div></div>
+<div class="r"><div class="lab"><span class="en">More candidates (30)</span><span class="vi">Nhiều ứng viên hơn (30)</span></div><div class="bars"><div class="bar ex" style="width:27%"><span>32%</span></div><div class="bar hd" style="width:42%"><span>49%</span></div></div></div>
+<div class="r"><div class="lab"><span class="en">+ query rewrite</span><span class="vi">+ viết lại truy vấn</span></div><div class="bars"><div class="bar ex" style="width:32%"><span>38%</span></div><div class="bar hd" style="width:48%"><span>57%</span></div></div></div>
+<div class="r"><div class="lab"><span class="en">Final list of 20 after fusion</span><span class="vi">Danh sách cuối 20 mục sau khi gộp</span></div><div class="bars"><div class="bar ex" style="width:36%"><span>42%</span></div><div class="bar hd" style="width:53%"><span>62%</span></div></div></div>
+<div class="r"><div class="lab"><span class="en">Separate models for rewrite and pick</span><span class="vi">Tách mô hình viết lại và mô hình chọn</span></div><div class="bars"><div class="bar ex" style="width:38%"><span>45%</span></div><div class="bar hd" style="width:54%"><span>63%</span></div></div></div>
+<div class="r best"><div class="lab"><span class="en">Best run, corrected labels</span><span class="vi">Lần tốt nhất, nhãn đã sửa</span></div><div class="bars"><div class="bar ex" style="width:40%"><span>47%</span></div><div class="bar hd" style="width:54%"><span>64%</span></div></div></div>
+</div>
+  <div class="runs-key"><span><i style="background:var(--accent)"></i><span class="en">exact 6-digit code</span><span class="vi">đúng đủ mã 6 số</span></span><span><i style="background:var(--accent-soft);border:1px solid var(--accent)"></i><span class="en">right 4-digit heading</span><span class="vi">đúng heading 4 số</span></span></div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en"><strong>Fixing the answer key mattered too.</strong> While reading wrong answers I found labels that were simply outdated: codes renumbered in the newer edition of the tariff (yogurt is one). Correcting 19 of them changed the scores by one to two points, and the final bars use the corrected key for both flows. Examples used inside prompts were also swapped for products that are not in the test set, so no answer leaked into the score.</p>
+    <p class="vi"><strong>Sửa đáp án cũng quan trọng.</strong> Khi đọc các câu trả lời sai, tôi thấy có những nhãn đơn giản là đã lỗi thời: mã bị đánh số lại trong phiên bản biểu thuế mới (sữa chua là một ví dụ). Sửa 19 nhãn như vậy làm điểm thay đổi một đến hai điểm, và thanh cuối của cả hai luồng đều dùng đáp án đã sửa. Ví dụ dùng trong prompt cũng được thay bằng sản phẩm không có trong bộ test, để không có đáp án nào lọt vào điểm số.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Why RAG lost</span><span class="vi">Vì sao RAG thua</span></span>
+    <h2><span class="en">The pick can only be as good as the candidates</span><span class="vi">Chọn chỉ tốt được bằng danh sách ứng viên</span></h2>
+    <p class="en muted">Thirteen RAG runs raised its automatic score from about 27% to 47%, and by hand it reached about 88–90%, still clearly behind the prompt flow’s 97%. Reading the failures showed why.</p>
+    <p class="vi muted">Mười ba lần chạy RAG đưa điểm tự động từ khoảng 27% lên 47%, và khi chấm tay đạt khoảng 88–90%, vẫn kém rõ rệt so với 97% của luồng prompt. Đọc các ca sai cho thấy lý do.</p>
+  </div>
+  <div class="table-wrap" style="margin-top:18px"><table>
+    <thead><tr><th><span class="en">Finding</span><span class="vi">Phát hiện</span></th><th><span class="en">What it means</span><span class="vi">Ý nghĩa</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Recall is the bottleneck</span><span class="vi">Recall là nút thắt</span></td><td><span class="en">The right line appeared in at least one retriever for about 83% of products, but only about 59% survived into the fused top 10. Raising the list to 20 helped, but the model can never choose a line it is not shown.</span><span class="vi">Dòng đúng xuất hiện trong ít nhất một bộ truy xuất ở khoảng 83% sản phẩm, nhưng chỉ khoảng 59% còn lại trong top 10 sau khi gộp. Tăng danh sách lên 20 có giúp, nhưng mô hình không bao giờ chọn được một dòng mà nó không được thấy.</span></td></tr><tr><td class="k"><span class="en">Trade words are not tariff words</span><span class="vi">Từ thương mại không phải từ biểu thuế</span></td><td><span class="en">“Broken rice” scored only 0.66 cosine similarity against the tariff’s “Cereals; rice, broken”, and some trade words never appear in the tariff at all. A rewrite step closed part of the gap, at the cost of an extra call.</span><span class="vi">“Broken rice” chỉ đạt độ tương đồng cosine 0,66 với “Cereals; rice, broken” trong biểu thuế, và có những từ thương mại hoàn toàn không xuất hiện trong biểu thuế. Bước viết lại thu hẹp được một phần khoảng cách, đổi lại tốn thêm một lượt gọi.</span></td></tr><tr><td class="k"><span class="en">Near-identical lines</span><span class="vi">Các dòng gần như giống hệt nhau</span></td><td><span class="en">One fish heading alone has 48 subheadings that read almost the same. Retrieval returns a crowd of siblings and the correct one is easily pushed out.</span><span class="vi">Riêng một heading cá đã có 48 phân nhóm đọc gần như giống nhau. Truy xuất trả về cả đám mã anh em, và mã đúng dễ bị đẩy ra ngoài.</span></td></tr><tr><td class="k"><span class="en">Confident when wrong</span><span class="vi">Tự tin khi sai</span></td><td><span class="en">Of about 120 answers in the wrong heading, the model marked about 105 as high confidence, so the confidence field could not be used to catch them.</span><span class="vi">Trong khoảng 120 câu trả lời sai heading, mô hình đánh dấu khoảng 105 câu là độ tự tin cao, nên không thể dùng trường độ tự tin để bắt lỗi.</span></td></tr><tr><td class="k"><span class="en">Narrowing by chapter did not help</span><span class="vi">Lọc theo chương không giúp gì</span></td><td><span class="en">Pre-selecting likely chapters before retrieval scored the same as not doing it (about 29% either way).</span><span class="vi">Chọn trước các chương có khả năng rồi mới truy xuất cho điểm y như không lọc (khoảng 29% cả hai).</span></td></tr></tbody>
+  </table></div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">The prompt flow avoids these problems because the model already knows the structure of the tariff: it reasons chapter → heading → subheading instead of matching wording. What it lacked was discipline, and the checklist, trade defaults and tie-break examples supplied that.</p>
+    <p class="vi">Luồng prompt tránh được các vấn đề này vì mô hình vốn đã biết cấu trúc biểu thuế: nó suy luận theo chương → heading → phân nhóm thay vì so khớp câu chữ. Thứ nó thiếu là kỷ luật, và checklist, mặc định thương mại cùng các ví dụ phân xử đã bù vào đó.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Cost</span><span class="vi">Chi phí</span></span>
+    <h2><span class="en">Similar per call, cheaper over time</span><span class="vi">Tương đương mỗi lượt, rẻ hơn theo thời gian</span></h2>
+  </div>
+  <div class="table-wrap" style="margin-top:18px"><table>
+    <thead><tr><th><span class="en"></span><span class="vi"></span></th><th><span class="en">A · Prompt</span><span class="vi">A · Prompt</span></th><th><span class="en">B · RAG</span><span class="vi">B · RAG</span></th></tr></thead>
+    <tbody><tr><td class="k"><span class="en">Model calls per new product</span><span class="vi">Lượt gọi mô hình cho mỗi sản phẩm mới</span></td><td><span class="en">1 small + 1 reasoning (low effort)</span><span class="vi">1 lượt nhỏ + 1 lượt suy luận (mức thấp)</span></td><td><span class="en">1 pick, +1 rewrite when on</span><span class="vi">1 lượt chọn, +1 lượt viết lại nếu bật</span></td></tr><tr><td class="k"><span class="en">Repeat products</span><span class="vi">Sản phẩm lặp lại</span></td><td><span class="en">Dictionary hit: no reasoning call</span><span class="vi">Có trong từ điển: không gọi lượt suy luận</span></td><td><span class="en">Full retrieval and pick again</span><span class="vi">Truy xuất và chọn lại từ đầu</span></td></tr><tr><td class="k"><span class="en">Average time in the evaluation</span><span class="vi">Thời gian trung bình khi đánh giá</span></td><td><span class="en">~4 s</span><span class="vi">~3 s</span></td></tr><tr><td class="k"><span class="en">Extra infrastructure</span><span class="vi">Hạ tầng thêm</span></td><td><span class="en">None beyond the existing search index</span><span class="vi">Không có gì ngoài search index sẵn có</span></td><td><span class="en">A tariff index to embed, store and update with each edition</span><span class="vi">Một index biểu thuế phải embed, lưu và cập nhật theo mỗi phiên bản</span></td></tr></tbody>
+  </table></div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">Per call the two cost about the same. Because the dictionary absorbs repeats, the prompt flow gets cheaper the longer it runs, while RAG pays for retrieval every time and adds an index to maintain.</p>
+    <p class="vi">Tính theo mỗi lượt, hai luồng tốn gần như nhau. Vì từ điển hấp thụ các sản phẩm lặp lại, luồng prompt càng chạy lâu càng rẻ, còn RAG lần nào cũng tốn công truy xuất và phải duy trì thêm một index.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Decisions and trade-offs</span><span class="vi">Quyết định và đánh đổi</span></span>
+    <h2><span class="en">What I chose, and why</span><span class="vi">Tôi đã chọn gì, và vì sao</span></h2>
+  </div>
+  <div class="decisions">
+    <div class="dec"><h3><span class="en">Keep the prompt flow in production</span><span class="vi">Giữ luồng prompt chạy thật</span></h3><p><span class="en">About 97% correct by hand against 88–90% for RAG, ahead on every automatic score too, at a similar cost and with nothing new to operate.</span><span class="vi">Đúng khoảng 97% khi chấm tay so với 88–90% của RAG, dẫn trước ở mọi điểm tự động, chi phí tương đương và không thêm gì phải vận hành.</span></p></div>
+    <div class="dec"><h3><span class="en">A strict score to iterate, a human to decide</span><span class="vi">Điểm chặt để thử nghiệm, người chấm để quyết định</span></h3><p><span class="en">The automatic score was fast enough to run after every change and showed the direction; the heading level showed the size of the gap. The final call was made after re-checking every mismatch by hand, because a valid alternative code is not an error.</span><span class="vi">Điểm tự động đủ nhanh để chạy sau mỗi thay đổi và cho thấy hướng đi; cấp heading cho thấy độ lớn của khoảng cách. Quyết định cuối cùng được đưa ra sau khi chấm tay mọi câu không khớp, vì một mã thay thế hợp lệ không phải là lỗi.</span></p></div>
+    <div class="dec"><h3><span class="en">Re-label old answers when the prompt improves</span><span class="vi">Gắn nhãn lại câu trả lời cũ khi prompt tốt hơn</span></h3><p><span class="en">A batch job re-predicted every name in the dictionary with the new prompt and updated the products and requests that used the old code.</span><span class="vi">Một job theo lô dự đoán lại mọi tên trong từ điển bằng prompt mới, và cập nhật các sản phẩm, yêu cầu mua đang dùng mã cũ.</span></p></div>
+    <div class="dec"><h3><span class="en">Use retrieval to check, not to choose</span><span class="vi">Dùng truy xuất để kiểm tra, không để chọn</span></h3><p><span class="en">The next step I would take: check that every predicted code exists in the current tariff, and show the nearest tariff lines next to low-confidence answers for a human to confirm.</span><span class="vi">Bước tiếp theo tôi sẽ làm: kiểm tra mọi mã dự đoán có tồn tại trong biểu thuế hiện hành, và hiển thị các dòng biểu thuế gần nhất bên cạnh những câu trả lời ít chắc chắn để người xác nhận.</span></p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Lessons</span><span class="vi">Bài học</span></span>
+    <h2><span class="en">What I would tell the next person</span><span class="vi">Điều tôi muốn chia sẻ</span></h2>
+  </div>
+  <p class="quote"><span class="en">RAG is not automatically better. When the model already knows the domain, retrieval can only add what the retriever finds.</span><span class="vi">RAG không mặc nhiên tốt hơn. Khi mô hình đã biết lĩnh vực, truy xuất chỉ thêm được những gì bộ truy xuất tìm thấy.</span></p>
+  <ul class="clean col">
+    <li><span class="en"><strong>Measure recall before tuning the pick.</strong> Check how often the right answer is even in the candidate list. If it is not there, no prompt can choose it.</span><span class="vi"><strong>Đo recall trước khi tinh chỉnh bước chọn.</strong> Kiểm tra xem đáp án đúng có nằm trong danh sách ứng viên thường xuyên không. Nếu không có, không prompt nào chọn được nó.</span></li>
+    <li><span class="en"><strong>Compare on one test set, with the same scoring.</strong> Every number on this page comes from the same names and the same two levels, which is the only reason the comparison means anything.</span><span class="vi"><strong>So sánh trên một bộ test, cùng một cách chấm.</strong> Mọi con số trên trang đều đến từ cùng một bộ tên và cùng hai cấp chấm điểm, đó là lý do duy nhất khiến phép so sánh có ý nghĩa.</span></li>
+    <li><span class="en"><strong>Know what your metric undercounts.</strong> Exact match against one label scored the prompt flow near 52%; after re-checking the mismatches by hand, about 97% of its answers were correct. Use the strict score to compare runs, and a human check to decide.</span><span class="vi"><strong>Biết thước đo của mình đếm thiếu ở đâu.</strong> So khớp chính xác với một nhãn cho luồng prompt khoảng 52%; sau khi chấm tay các câu không khớp, khoảng 97% câu trả lời là đúng. Dùng điểm chặt để so các lần chạy, và chấm tay để quyết định.</span></li>
+    <li><span class="en"><strong>Let a strong model draft, let a person decide.</strong> A strong model labels hundreds of names in minutes with a reason for each; a person re-validating every label is what makes the key trustworthy.</span><span class="vi"><strong>Để mô hình mạnh soạn, để người quyết định.</strong> Mô hình mạnh gắn nhãn hàng trăm tên trong vài phút, kèm lý do cho từng tên; người kiểm tra lại mọi nhãn mới là thứ làm bộ đáp án đáng tin.</span></li>
+    <li><span class="en"><strong>Audit the answer key.</strong> Some “wrong” answers were wrong labels. Reading failures one by one found them.</span><span class="vi"><strong>Rà soát lại đáp án.</strong> Một số câu trả lời “sai” thật ra là nhãn sai. Đọc từng ca sai mới tìm ra chúng.</span></li>
+    <li><span class="en"><strong>Keep test items out of the prompt.</strong> Examples taken from the test set make any prompt look better than it is.</span><span class="vi"><strong>Không đưa mục test vào prompt.</strong> Ví dụ lấy từ bộ test sẽ làm bất kỳ prompt nào trông tốt hơn thực tế.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col"><span class="eyebrow">Stack</span></div>
+  <div class="chips">
+    <span>Python</span><span>OpenAI · reasoning models</span><span><span class="en">embeddings · 1,024 dims</span><span class="vi">embedding · 1.024 chiều</span></span><span>Elasticsearch kNN</span><span>Chroma</span><span>BM25</span><span><span class="en">reciprocal rank fusion</span><span class="vi">gộp theo thứ hạng nghịch đảo</span></span><span>Pydantic</span><span><span class="en">offline evaluation</span><span class="vi">đánh giá offline</span></span></div>
+</section>
+
+<footer>
+  <div class="contact">
+    <a href="https://www.linkedin.com/in/tuanvinh-24a875396">LinkedIn</a>
+    <a href="https://github.com/VinhTuan-maker">GitHub</a>
+  </div>
+  <span class="en">Case study by Tran Vinh Tuan, AI Engineer. A personal portfolio piece describing my own work; not an official publication. Internal code, prompts, credentials and customer or listing data are not shown, and figures are rounded.</span>
+  <span class="vi">Case study của Trần Vĩnh Tuấn, AI Engineer. Tài liệu portfolio cá nhân mô tả công việc của tôi, không phải ấn phẩm chính thức. Không hiển thị mã nguồn, prompt, thông tin đăng nhập hay dữ liệu khách hàng; số liệu đã được làm tròn.</span>
+</footer>
+</main>
+<script>
+(function(){
+  var b=document.body, en=document.getElementById('btn-en'), vi=document.getElementById('btn-vi');
+  function set(l){
+    b.classList.toggle('lang-vi', l==='vi');
+    document.documentElement.lang = l;
+    en.setAttribute('aria-pressed', l==='en'); vi.setAttribute('aria-pressed', l==='vi');
+    try{localStorage.setItem('cs-lang', l)}catch(e){}
+  }
+  en.addEventListener('click',function(){set('en')});
+  vi.addEventListener('click',function(){set('vi')});
+  var start='en';
+  if(location.hash==='#vi') start='vi';
+  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'en' }catch(e){} }
+  set(start);
+})();
+</script>
+</body>
+</html>
