@@ -249,6 +249,26 @@ footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:
 
 <section>
   <div class="sec-head col">
+    <span class="eyebrow"><span class="en">In plain words</span><span class="vi">Nói đơn giản</span></span>
+    <h2><span class="en">Like shelving a new book in a library</span><span class="vi">Giống như xếp một cuốn sách mới lên kệ thư viện</span></h2>
+    <p class="en muted">Think of the category tree as a library: level 1 is the floor, level 2 is the shelf, level 3 is the label on each book. A new product name is a new book. The tool asks three questions in order.</p>
+    <p class="vi muted">Hãy hình dung cây danh mục như một thư viện: cấp 1 là tầng, cấp 2 là kệ, cấp 3 là nhãn trên từng cuốn sách. Một tên sản phẩm mới là một cuốn sách mới. Công cụ hỏi ba câu theo thứ tự.</p>
+  </div>
+  <div class="flow" aria-label="Plain-language flow">
+    <div class="step "><span class="n">1</span><b><span class="en">Is it already on a shelf?</span><span class="vi">Đã có trên kệ chưa?</span></b><p><span class="en">If a category with this name exists, do nothing.</span><span class="vi">Nếu đã có danh mục trùng tên, không làm gì.</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">2</span><b><span class="en">Which shelf are its closest neighbours on?</span><span class="vi">Hàng xóm gần nhất nằm ở kệ nào?</span></b><p><span class="en">Find the most similar existing categories by meaning, and look at the shelf they sit on.</span><span class="vi">Tìm các danh mục có sẵn giống nhất về nghĩa, và xem chúng nằm ở kệ nào.</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step ai"><span class="n">3</span><b><span class="en">Sure enough to shelve it?</span><span class="vi">Đủ chắc để xếp chưa?</span></b><p><span class="en">Very close: shelve it there. Somewhat close: ask an expert (an LLM). Not close to anything: set it aside.</span><span class="vi">Rất gần: xếp luôn. Hơi gần: hỏi chuyên gia (một LLM). Không gần gì cả: để sang một bên.</span></p></div>
+  </div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">Example: “Alaskan King Crab” is not in the tree yet; its nearest neighbours sit on the “Seafood &amp; Aquatic Products” shelf at a distance of 0.21, well inside the confident limit, so it becomes a new level-3 category there without asking any model.</p>
+    <p class="vi">Ví dụ: “Alaskan King Crab” chưa có trong cây; các hàng xóm gần nhất nằm trên kệ “Seafood &amp; Aquatic Products” với khoảng cách 0,21, nằm sâu trong ngưỡng tin cậy, nên nó trở thành một danh mục cấp 3 mới ở đó mà không cần hỏi mô hình nào.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
     <span class="eyebrow"><span class="en">The problem</span><span class="vi">Bài toán</span></span>
     <h2><span class="en">A tree that falls behind its products</span><span class="vi">Cây danh mục chạy không kịp sản phẩm</span></h2>
   </div>
@@ -267,7 +287,17 @@ footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:
 
 <section>
   <div class="sec-head col">
-    <span class="eyebrow"><span class="en">How it works</span><span class="vi">Cách hoạt động</span></span>
+    <span class="eyebrow"><span class="en">How the design evolved</span><span class="vi">Thiết kế đã thay đổi thế nào</span></span>
+    <h2><span class="en">From “let the LLM decide everything” to “let distance decide who works”</span><span class="vi">Từ “để LLM quyết định tất cả” tới “để khoảng cách quyết định ai làm việc”</span></h2>
+    <p class="en muted">The tool was built over two days in five steps. Each step came from reading the previous version’s output.</p>
+    <p class="vi muted">Công cụ được xây trong hai ngày, qua năm bước. Mỗi bước đến từ việc đọc kết quả của phiên bản trước đó.</p>
+  </div>
+  <div class="layers"><div class="layer"><b><span class="en">v1 · LLM decides everything</span><span class="vi">v1 · LLM quyết định tất cả</span></b><span><span class="en">Vector search with no distance limit returned up to 8 nearby groups; an LLM then picked the parent from them, and could even create a brand-new level-2 group. Near-duplicate names were merged first with fuzzy matching.</span><span class="vi">Tìm vector không giới hạn khoảng cách, trả về tối đa 8 nhóm lân cận; sau đó LLM chọn danh mục cha trong số đó, và còn được phép tạo cả nhóm cấp 2 mới. Tên gần trùng được gộp trước bằng so khớp mờ.</span></span></div><div class="layer"><b><span class="en">v2 · Take the LLM out</span><span class="vi">v2 · Bỏ LLM ra</span></b><span><span class="en">Letting a model invent level-2 groups would let the upper tree grow without control. The LLM and level-2 creation were removed: embeddings only, a 0.5 distance limit, and a name with no close group is simply skipped. The existence check now looks at every level, not only level 3.</span><span class="vi">Để mô hình tự đặt ra nhóm cấp 2 sẽ khiến phần trên của cây phình ra không kiểm soát. LLM và việc tạo cấp 2 bị bỏ: chỉ dùng embedding, giới hạn khoảng cách 0,5, tên không có nhóm nào gần thì bỏ qua. Bước kiểm tra tồn tại giờ xét mọi cấp, không chỉ cấp 3.</span></span></div><div class="layer"><b><span class="en">v3 · Make it run at full size</span><span class="vi">v3 · Cho nó chạy được ở quy mô thật</span></b><span><span class="en">The fuzzy de-duplication compared every name with every name already kept, which does not finish on ~52,000 names. It was replaced by one normalisation rule (title case, then exact de-duplication), and the full name list is read from an exported file. Candidates went from 8 to 15.</span><span class="vi">Bước loại trùng bằng so khớp mờ so mỗi tên với mọi tên đã giữ, không thể chạy xong với ~52.000 tên. Nó được thay bằng một quy tắc chuẩn hoá (viết hoa chuẩn rồi loại trùng chính xác), và toàn bộ danh sách tên được đọc từ một file xuất ra. Số ứng viên tăng từ 8 lên 15.</span></span></div><div class="layer"><b><span class="en">v4 · Bring the LLM back as a fallback</span><span class="vi">v4 · Đưa LLM trở lại làm dự phòng</span></b><span><span class="en">With embeddings alone, every name without a close match was dropped, including names a person could place easily. The confident limit was tightened to 0.4, and anything not that close went to the existing LLM classifier, which picks the sector first and then the category. A type bug (“2” versus 2) that silently rejected every LLM answer was found from the log and fixed.</span><span class="vi">Chỉ dùng embedding thì mọi tên không có kết quả gần đều bị bỏ, kể cả những tên một người có thể xếp dễ dàng. Ngưỡng tin cậy được siết xuống 0,4, và mọi tên không gần đến mức đó được chuyển cho bộ phân loại LLM có sẵn, vốn chọn ngành trước rồi mới chọn danh mục. Một lỗi kiểu dữ liệu (“2” so với 2) âm thầm loại bỏ mọi câu trả lời của LLM được phát hiện từ log và đã sửa.</span></span></div><div class="layer"><b><span class="en">v5 · Two thresholds</span><span class="vi">v5 · Hai ngưỡng</span></b><span><span class="en">Sending every non-confident name to the LLM would also spend calls on brands and junk. A second limit was added: search within 0.5, accept at 0.4, and skip without any model call when nothing is within 0.5. Then came the 500-name dry run, a review of the plan, and the real run.</span><span class="vi">Chuyển mọi tên chưa đủ tin cậy cho LLM sẽ tốn lượt gọi cho cả tên thương hiệu và rác. Một ngưỡng thứ hai được thêm vào: tìm trong 0,5, nhận ở 0,4, và bỏ qua mà không gọi mô hình khi không có gì trong 0,5. Sau đó là lần chạy thử 500 tên, đọc lại kế hoạch, rồi chạy thật.</span></span></div></div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">The final design</span><span class="vi">Thiết kế cuối cùng</span></span>
     <h2><span class="en">Embeddings first, a model only when unsure</span><span class="vi">Embedding trước, chỉ hỏi mô hình khi không chắc</span></h2>
   </div>
   <div class="flow" aria-label="Taxonomy growth flow">
@@ -289,7 +319,7 @@ footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:
 
 <section>
   <div class="sec-head col">
-    <span class="eyebrow"><span class="en">Design choice 1</span><span class="vi">Lựa chọn thiết kế 1</span></span>
+    <span class="eyebrow"><span class="en">Final design · detail 1</span><span class="vi">Thiết kế cuối · chi tiết 1</span></span>
     <h2><span class="en">Search every level, then roll up to the parent</span><span class="vi">Tìm trên mọi cấp, rồi quy về danh mục cha</span></h2>
     <p class="en muted">The obvious query is “which level-2 group is closest to this name?”. It misses often, because level 2 is sparse and level 3 is dense: a new name is usually closest to an existing sibling, not to its parent.</p>
     <p class="vi muted">Câu hỏi hiển nhiên là “nhóm cấp 2 nào gần tên này nhất?”. Cách này hay trượt, vì cấp 2 thưa còn cấp 3 dày: một tên mới thường gần một danh mục anh em có sẵn hơn là gần danh mục cha.</p>
@@ -302,7 +332,7 @@ footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:
 
 <section>
   <div class="sec-head col">
-    <span class="eyebrow"><span class="en">Design choice 2</span><span class="vi">Lựa chọn thiết kế 2</span></span>
+    <span class="eyebrow"><span class="en">Final design · detail 2</span><span class="vi">Thiết kế cuối · chi tiết 2</span></span>
     <h2><span class="en">Two thresholds, three outcomes</span><span class="vi">Hai ngưỡng, ba kết cục</span></h2>
     <p class="en muted">Cosine distance to the best parent decides the route. One threshold says when the vector match can be trusted; a second says when a name is too far from everything to be worth asking a model about.</p>
     <p class="vi muted">Khoảng cách cosine tới danh mục cha tốt nhất quyết định đường đi. Một ngưỡng cho biết khi nào tin được kết quả vector; ngưỡng thứ hai cho biết khi nào một tên quá xa mọi thứ đến mức không đáng hỏi mô hình.</p>
