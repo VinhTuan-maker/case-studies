@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
 <head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
@@ -207,12 +207,12 @@ footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:
 </style>
 
 </head>
-<body>
+<body class="lang-vi">
 <header class="top"><div class="wrap">
   <a class="brand" href="./" style="color:inherit;text-decoration:none">← <span class="en">All case studies</span><span class="vi">Tất cả case study</span> · Tran Vinh Tuan</a>
   <div class="switch" role="group" aria-label="Language">
-    <button type="button" id="btn-en" aria-pressed="true">EN</button>
-    <button type="button" id="btn-vi" aria-pressed="false">VI</button>
+    <button type="button" id="btn-en" aria-pressed="false">EN</button>
+    <button type="button" id="btn-vi" aria-pressed="true">VI</button>
   </div>
 </div></header>
 
@@ -698,9 +698,9 @@ code:    bỏ mục “thiếu dữ liệu”,
   }
   en.addEventListener('click',function(){set('en')});
   vi.addEventListener('click',function(){set('vi')});
-  var start='en';
+  var start='vi';
   if(location.hash==='#vi') start='vi';
-  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'en' }catch(e){} }
+  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'vi' }catch(e){} }
   set(start);
 })();
 </script>

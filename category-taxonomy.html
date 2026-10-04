@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Category Taxonomy Growth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with full-width flow, format grid and an input→output example; slim sticky header with EN/VI switch. Same family as the other case studies, ledger-plum accent. */
+:root{
+  --bg:#f3f3f6;          /* paper-catalog grey, indigo-biased */
+  --surface:#ffffff;
+  --ink:#1b1c2b;
+  --muted:#5a5c6e;
+  --line:#d9d9e3;
+  --accent:#4d6b1f;      /* olive */
+  --accent-soft:#e9efdc;
+  --amber:#b4610b;       /* LLM step */
+  --amber-soft:#f8ead9;
+  --good:#1f7a52;
+  --bad:#b3261e;
+  --bad-soft:#f9e3e1;
+  --code-bg:#ebebf1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+    --accent:#a8c46a; --accent-soft:#2c3519; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --bad:#f2867c; --bad-soft:#3d1f1f; --code-bg:#23253a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121320; --surface:#1b1c2c; --ink:#e7e7f0; --muted:#a0a2b6; --line:#2e3045;
+  --accent:#a8c46a; --accent-soft:#2c3519; --amber:#f0a352; --amber-soft:#3a2a17; --good:#5fcf9a; --bad:#f2867c; --bad-soft:#3d1f1f; --code-bg:#23253a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.65;padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,3.6vw,2.15rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+.vi{display:none}
+body.lang-vi .en{display:none}
+body.lang-vi .vi{display:revert}
+span.vi,span.en{display:inline}
+body.lang-vi span.en{display:none}
+body:not(.lang-vi) span.vi{display:none}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-20px;padding:10px 20px}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.switch{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.switch button{font:500 .8rem var(--f-mono);background:transparent;color:var(--muted);border:0;padding:6px 14px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.switch button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.hero{padding-block:56px 40px;display:flex;flex-direction:column;gap:22px}
+.lede{font-size:1.2rem;color:var(--muted);max-width:60ch}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.meta div{background:var(--surface);padding:14px 16px;min-width:0}
+.meta dt{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.meta dd{margin:4px 0 0;font-weight:500;font-size:.95rem}
+
+section{padding-block:44px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:22px}
+.sec-head{display:flex;flex-direction:column;gap:8px}
+
+.flow{display:flex;flex-wrap:wrap;align-items:stretch}
+.step{flex:1 1 130px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.step .n{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.step b{font-family:var(--f-display);font-size:1.02rem}
+.step p{font-size:.86rem;color:var(--muted);line-height:1.5}
+.step.ai{background:var(--amber-soft);border-color:transparent}
+.step.store{background:var(--accent-soft);border-color:transparent}
+.arrow{flex:0 0 24px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--f-mono)}
+@media (max-width:760px){.flow{flex-direction:column}.arrow{flex-basis:22px;transform:rotate(90deg)}}
+.flow-label{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.flow-label i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.lane{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.formats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.fmt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fmt .ext{font-family:var(--f-mono);font-size:.78rem;color:var(--accent);letter-spacing:.04em}
+.fmt p{font-size:.88rem;color:var(--muted);line-height:1.5}
+
+.example{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.example{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel .tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.doc{font-family:var(--f-mono);font-size:.78rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre-wrap;overflow-x:auto;line-height:1.55}
+.json{font-family:var(--f-mono);font-size:.76rem;background:var(--code-bg);border-radius:8px;padding:12px;white-space:pre;overflow-x:auto;line-height:1.5}
+.json .k{color:var(--accent)}
+.json .r{color:var(--amber)}
+.json .c{color:var(--muted)}
+
+.gate{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.gate div{border-left:3px solid var(--accent);padding:4px 0 4px 14px;min-width:0}
+.gate b{display:block;font-size:.98rem}
+.gate span{font-size:.9rem;color:var(--muted)}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:600}
+.pill{font-family:var(--f-mono);font-size:.72rem;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pill.cloud{background:var(--accent-soft)}
+.pill.self{background:var(--amber-soft)}
+
+.layers{display:flex;flex-direction:column;gap:8px}
+.layer{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.layer b{font-size:.92rem}
+.layer span{font-size:.9rem;color:var(--muted)}
+@media (max-width:560px){.layer{grid-template-columns:1fr}}
+
+.scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.scale div{background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.scale b{font-family:var(--f-display);font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.scale span{font-size:.86rem;color:var(--muted)}
+.scale .good b{color:var(--good)}
+
+.qbar{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.qbar i{display:block;min-width:4px}
+.qbar .ok{background:var(--good)}
+.qbar .part{background:var(--amber)}
+.qbar .bad{background:var(--bad)}
+.qbar .unk{background:var(--muted)}
+.qbar .rej{background:var(--code-bg)}
+.qlegend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.86rem;color:var(--muted);margin-top:10px}
+.qlegend span{display:inline-flex;align-items:center;gap:6px}
+.qlegend i{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+td .catch{font-family:var(--f-mono);font-size:.76rem;color:var(--good)}
+.decisions{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.dec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 28px;padding-block:18px;border-bottom:1px solid var(--line)}
+.dec h3{font-size:1.02rem}
+.dec p{font-size:.95rem;color:var(--muted)}
+@media (max-width:640px){.dec{grid-template-columns:1fr}}
+
+ul.clean{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+.quote{font-family:var(--f-display);font-size:1.35rem;line-height:1.35;border-left:3px solid var(--amber);padding-left:18px;max-width:52ch}
+
+.datanote{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--surface);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.datanote .t{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.datanote dl{margin:0;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:6px 16px;font-size:.9rem}
+.datanote dt{font-weight:600}
+.datanote dd{margin:0;color:var(--muted)}
+@media (max-width:560px){.datanote dl{grid-template-columns:1fr}.datanote dd{margin-bottom:6px}}
+footer{padding-top:32px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+.contact{display:flex;flex-wrap:wrap;gap:10px 20px;margin-bottom:14px}
+@media (prefers-reduced-motion:no-preference){.switch button{transition:background .15s,color .15s}}
+
+
+
+/* architecture figure */
+.arch{margin:22px 0 0;overflow-x:auto}
+.arch svg{display:block;width:100%;min-width:720px;height:auto}
+.arch .bx{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.arch .bx.ai{fill:var(--amber-soft);stroke:var(--amber)}
+.arch .bx.st{fill:var(--accent-soft);stroke:var(--accent)}
+.arch .bx.ex{fill:var(--surface);stroke:var(--muted);stroke-dasharray:4 3}
+.arch .lane{fill:none;stroke:var(--line);stroke-dasharray:6 5;stroke-width:1.2}
+.arch .t{font:600 13px var(--f-body);fill:var(--ink)}
+.arch .s{font:11px var(--f-body);fill:var(--muted)}
+.arch .lb{font:500 10.5px var(--f-mono);fill:var(--muted);letter-spacing:.06em}
+.arch .al{font:500 10.5px var(--f-mono);fill:var(--accent)}
+.arch .ar{fill:none;stroke:var(--muted);stroke-width:1.4}
+.arch .ar.hot{stroke:var(--accent)}
+.arch .ar.dash{stroke-dasharray:4 3}
+.arch .mk{fill:var(--muted)}
+.arch .mk.hot{fill:var(--accent)}
+.arch figcaption{font-size:.88rem;color:var(--muted);margin-top:10px;max-width:68ch}
+.arch-key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.84rem;color:var(--muted);margin-top:8px}
+.arch-key span{display:inline-flex;align-items:center;gap:6px}
+.arch-key i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.chips span span{border:0;padding:0;background:none;font:inherit}
+.tree{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;font-size:.92rem}
+.tree .lv{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:0}
+.tree .lv.new{background:var(--accent-soft);border-color:var(--accent)}
+.tree .lv small{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tree .sep{color:var(--muted);font-family:var(--f-mono)}
+.band{display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--line);margin-top:10px;font-size:.84rem}
+.band div{display:flex;align-items:center;justify-content:center;text-align:center;padding:0 8px;min-width:0}
+.band .ok{background:var(--accent-soft);color:var(--ink);flex:40}
+.band .ask{background:var(--amber-soft);color:var(--ink);flex:10}
+.band .skip{background:var(--code-bg);color:var(--muted);flex:50}
+.ticks{display:flex;font-family:var(--f-mono);font-size:.74rem;color:var(--muted);margin-top:4px}
+.ticks span{flex:40}.ticks span:nth-child(2){flex:10}.ticks span:nth-child(3){flex:50;text-align:right}
+.vs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:14px}
+@media (max-width:640px){.vs{grid-template-columns:1fr}}
+.vs .panel b{font-family:var(--f-display)}
+</style>
+
+</head>
+<body class="lang-vi">
+<header class="top"><div class="wrap">
+  <a class="brand" href="./" style="color:inherit;text-decoration:none">← <span class="en">All case studies</span><span class="vi">Tất cả case study</span> · Tran Vinh Tuan</a>
+  <div class="switch" role="group" aria-label="Language">
+    <button type="button" id="btn-en" aria-pressed="false">EN</button>
+    <button type="button" id="btn-vi" aria-pressed="true">VI</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<div class="hero">
+  <span class="eyebrow"><span class="en">Embeddings + LLM · taxonomy</span><span class="vi">Embedding + LLM · cây danh mục</span></span>
+  <h1><span class="en">Growing a product taxonomy from real product names</span><span class="vi">Mở rộng cây danh mục sản phẩm từ chính tên sản phẩm thật</span></h1>
+    <p class="en lede">The problem: product names kept arriving that the three-level category tree had no place for, which weakened every feature built on categories. I built a batch tool that turns real product names into new level-3 categories and decides where each one belongs: a vector search places the clear cases, an LLM classifier handles the uncertain ones, and names that fit nowhere are skipped without spending a model call.</p>
+    <p class="vi lede">Bài toán: tên sản phẩm mới liên tục xuất hiện mà cây danh mục ba cấp chưa có chỗ cho chúng, làm yếu đi mọi tính năng dựa trên danh mục. Tôi xây một công cụ chạy theo lô, biến tên sản phẩm thật thành danh mục cấp 3 mới và quyết định mỗi danh mục thuộc về đâu: tìm kiếm vector xếp các trường hợp rõ ràng, bộ phân loại LLM xử lý các trường hợp không chắc, còn tên không hợp chỗ nào thì bị bỏ qua mà không tốn lượt gọi mô hình.</p>
+  <dl class="meta">
+    <div><dt><span class="en">Role</span><span class="vi">Vai trò</span></dt><dd><span class="en">Designed and built the tool</span><span class="vi">Tự thiết kế và xây công cụ</span></dd></div>
+    <div><dt><span class="en">Input</span><span class="vi">Đầu vào</span></dt><dd><span class="en">~52,000 distinct product names</span><span class="vi">~52.000 tên sản phẩm khác nhau</span></dd></div>
+    <div><dt><span class="en">Result</span><span class="vi">Kết quả</span></dt><dd><span class="en">~80% placed by embeddings alone</span><span class="vi">~80% được xếp chỉ bằng embedding</span></dd></div>
+    <div><dt><span class="en">Status</span><span class="vi">Trạng thái</span></dt><dd><span class="en">Applied in production</span><span class="vi">Đã chạy thật</span></dd></div>
+    <div><dt><span class="en">Built</span><span class="vi">Thời gian</span></dt><dd><span class="en">Aug 2026</span><span class="vi">08/2026</span></dd></div>
+  </dl>
+</div>
+
+<aside class="datanote" aria-label="About this case study">
+  <span class="t"><span class="en">About this case study and its data</span><span class="vi">Về case study này và số liệu</span></span>
+  <dl>
+    <dt><span class="en">What this is</span><span class="vi">Đây là gì</span></dt><dd><span class="en">A personal portfolio piece describing a tool I designed and built as an engineer. My employer is not named on purpose; the page is my own description, not an official document.</span><span class="vi">Tài liệu portfolio cá nhân, mô tả công cụ tôi đã thiết kế và xây khi làm kỹ sư. Nơi tôi làm việc được cố ý không nêu tên; đây là mô tả của riêng tôi, không phải tài liệu chính thức.</span></dd>
+    <dt><span class="en">Numbers</span><span class="vi">Số liệu</span></dt><dd><span class="en">Routing figures come from a 500-name dry run of the tool and are rounded. They show which route made each decision, not an accuracy score. After the plan was reviewed, the tool was applied for real.</span><span class="vi">Số liệu phân luồng lấy từ một lần chạy thử 500 tên của công cụ, đã làm tròn. Chúng cho biết đường nào đưa ra từng quyết định, không phải điểm độ chính xác. Sau khi kế hoạch được xem lại, công cụ đã được áp dụng thật.</span></dd>
+    <dt><span class="en">Examples</span><span class="vi">Ví dụ</span></dt><dd><span class="en">Product and category names are generic and come from the dry-run log; no listing, company or customer is shown.</span><span class="vi">Tên sản phẩm và danh mục là tên chung, lấy từ log chạy thử; không hiển thị tin đăng, công ty hay khách hàng nào.</span></dd>
+    <dt><span class="en">Not included</span><span class="vi">Không có trong trang</span></dt><dd><span class="en">Source code, prompts, credentials and server details.</span><span class="vi">Mã nguồn, prompt, thông tin đăng nhập và thông tin server.</span></dd>
+  </dl>
+</aside>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">The problem</span><span class="vi">Bài toán</span></span>
+    <h2><span class="en">A tree that falls behind its products</span><span class="vi">Cây danh mục chạy không kịp sản phẩm</span></h2>
+  </div>
+  <div class="tree" aria-label="Example path: level 1, level 2, new level 3"><div class="lv"><small><span class="en">Level 1</span><span class="vi">Cấp 1</span></small>Electronics &amp; Communication</div><span class="sep">→</span><div class="lv"><small><span class="en">Level 2</span><span class="vi">Cấp 2</span></small>Computer Hardware &amp; Software</div><span class="sep">→</span><div class="lv new"><small><span class="en">Level 3 · new</span><span class="vi">Cấp 3 · mới</span></small>2-In-1 Laptop</div></div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">Categories sit in three levels: a broad sector, a product group, and a specific product. Search, category pages, matching and every AI feature that predicts a category lean on that tree. When a common product has no level-3 node, it gets pushed into a vague parent or a wrong sibling, and everything downstream inherits the mistake.</p>
+    <p class="vi">Danh mục gồm ba cấp: ngành rộng, nhóm sản phẩm, và sản phẩm cụ thể. Tìm kiếm, trang danh mục, kết nối và mọi tính năng AI dự đoán danh mục đều dựa vào cây này. Khi một sản phẩm phổ biến không có nút cấp 3, nó bị đẩy vào một danh mục cha chung chung hoặc một danh mục anh em sai, và mọi thứ phía sau thừa hưởng lỗi đó.</p>
+  </div>
+  <ul class="clean col" style="margin-top:16px">
+    <li><span class="en"><strong>Where, not just whether.</strong> Deciding that “Alaskan King Crab” deserves a category is easy; choosing the right parent among hundreds of groups is the real work.</span><span class="vi"><strong>Ở đâu, không chỉ có hay không.</strong> Quyết định “Alaskan King Crab” đáng có danh mục thì dễ; chọn đúng danh mục cha trong hàng trăm nhóm mới là phần việc thật.</span></li>
+    <li><span class="en"><strong>Scale makes the LLM expensive.</strong> About 52,000 distinct names come from listings and buying requests. Asking a model about each one would cost tens of thousands of calls.</span><span class="vi"><strong>Quy mô làm LLM trở nên đắt.</strong> Khoảng 52.000 tên khác nhau đến từ tin đăng và yêu cầu mua. Hỏi mô hình cho từng tên sẽ tốn hàng chục nghìn lượt gọi.</span></li>
+    <li><span class="en"><strong>Not every name should become a category.</strong> Brand names, vague names and one-off items would clutter the tree if added blindly.</span><span class="vi"><strong>Không phải tên nào cũng nên thành danh mục.</strong> Tên thương hiệu, tên mơ hồ và mặt hàng lẻ tẻ sẽ làm rối cây nếu thêm vào một cách mù quáng.</span></li>
+    <li><span class="en"><strong>Duplicates hide in casing.</strong> “energy storage system” and “Energy Storage System” must be one name before anything is matched or created.</span><span class="vi"><strong>Trùng lặp ẩn trong chữ hoa chữ thường.</strong> “energy storage system” và “Energy Storage System” phải được coi là một trước khi khớp hay tạo bất cứ thứ gì.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">How it works</span><span class="vi">Cách hoạt động</span></span>
+    <h2><span class="en">Embeddings first, a model only when unsure</span><span class="vi">Embedding trước, chỉ hỏi mô hình khi không chắc</span></h2>
+  </div>
+  <div class="flow" aria-label="Taxonomy growth flow">
+    <div class="step "><span class="n">1</span><b><span class="en">Collect names</span><span class="vi">Gom tên</span></b><p><span class="en">Distinct names from listings and requests, title-cased and de-duplicated</span><span class="vi">Tên khác nhau từ tin đăng và yêu cầu mua, viết hoa chuẩn và loại trùng</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step "><span class="n">2</span><b><span class="en">Already a category?</span><span class="vi">Đã là danh mục?</span></b><p><span class="en">If the name exists anywhere in the tree, skip it</span><span class="vi">Nếu tên đã có ở bất kỳ đâu trong cây, bỏ qua</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">3</span><b><span class="en">Vector search</span><span class="vi">Tìm bằng vector</span></b><p><span class="en">Top 15 across all levels, distance ≤ 0.5; level-3 hits rolled up to their level-2 parent</span><span class="vi">Top 15 trên mọi cấp, khoảng cách ≤ 0,5; kết quả cấp 3 được quy về danh mục cha cấp 2</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step ai"><span class="n">4</span><b><span class="en">Confidence gate</span><span class="vi">Cổng tin cậy</span></b><p><span class="en">Close: accept. Unsure: LLM classifier. Far from everything: skip</span><span class="vi">Gần: nhận luôn. Không chắc: bộ phân loại LLM. Xa mọi thứ: bỏ qua</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step store"><span class="n">5</span><b><span class="en">Dry run, then apply</span><span class="vi">Chạy thử, rồi áp dụng</span></b><p><span class="en">Every decision logged with route and distance before categories are created</span><span class="vi">Mọi quyết định được ghi log kèm đường đi và khoảng cách trước khi tạo danh mục</span></p></div>
+  </div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">The vector search runs against the category index the platform already keeps (category names embedded with a large text-embedding model, cosine distance). The tool adds no new infrastructure: it is a decision layer on top of an index that already existed.</p>
+    <p class="vi">Phần tìm kiếm vector chạy trên index danh mục mà nền tảng đã có sẵn (tên danh mục được embed bằng một mô hình text-embedding lớn, khoảng cách cosine). Công cụ không thêm hạ tầng mới: nó là một lớp ra quyết định nằm trên một index đã tồn tại.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Design choice 1</span><span class="vi">Lựa chọn thiết kế 1</span></span>
+    <h2><span class="en">Search every level, then roll up to the parent</span><span class="vi">Tìm trên mọi cấp, rồi quy về danh mục cha</span></h2>
+    <p class="en muted">The obvious query is “which level-2 group is closest to this name?”. It misses often, because level 2 is sparse and level 3 is dense: a new name is usually closest to an existing sibling, not to its parent.</p>
+    <p class="vi muted">Câu hỏi hiển nhiên là “nhóm cấp 2 nào gần tên này nhất?”. Cách này hay trượt, vì cấp 2 thưa còn cấp 3 dày: một tên mới thường gần một danh mục anh em có sẵn hơn là gần danh mục cha.</p>
+  </div>
+  <div class="vs">
+    <div class="panel"><span class="tag"><span class="en">Level-2 search only</span><span class="vi">Chỉ tìm ở cấp 2</span></span><p><b>Bamboo Charcoal Rice</b> → <span class="en">compared with the bare group name “Rice”</span><span class="vi">so với tên nhóm trơn “Rice”</span></p><p class="muted" style="font-size:.9rem"><span class="en">A short, generic name embeds far from a specific product, so the match is weak and may fall outside the threshold.</span><span class="vi">Một tên ngắn, chung chung khi embed sẽ nằm xa một sản phẩm cụ thể, nên độ khớp yếu và có thể rơi ra ngoài ngưỡng.</span></p></div>
+    <div class="panel"><span class="tag"><span class="en">All levels, rolled up</span><span class="vi">Mọi cấp, quy về cha</span></span><p><b>Bamboo Charcoal Rice</b> → <span class="en">closest to the existing level-3 “Grains-Rice”, whose parent is the right group</span><span class="vi">gần nhất với danh mục cấp 3 có sẵn “Grains-Rice”, mà danh mục cha của nó là đúng nhóm</span></p><p class="muted" style="font-size:.9rem"><span class="en">Each hit is mapped to its level-2 parent, and each parent keeps its best distance.</span><span class="vi">Mỗi kết quả được quy về danh mục cha cấp 2, và mỗi danh mục cha giữ khoảng cách tốt nhất của nó.</span></p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Design choice 2</span><span class="vi">Lựa chọn thiết kế 2</span></span>
+    <h2><span class="en">Two thresholds, three outcomes</span><span class="vi">Hai ngưỡng, ba kết cục</span></h2>
+    <p class="en muted">Cosine distance to the best parent decides the route. One threshold says when the vector match can be trusted; a second says when a name is too far from everything to be worth asking a model about.</p>
+    <p class="vi muted">Khoảng cách cosine tới danh mục cha tốt nhất quyết định đường đi. Một ngưỡng cho biết khi nào tin được kết quả vector; ngưỡng thứ hai cho biết khi nào một tên quá xa mọi thứ đến mức không đáng hỏi mô hình.</p>
+  </div>
+  <div class="band" role="img" aria-label="Distance 0 to 0.4: accept the embedding match; 0.4 to 0.5: ask the LLM classifier; above 0.5: skip"><div class="ok"><span class="en">Accept the embedding match</span><span class="vi">Nhận kết quả embedding</span></div><div class="ask"><span class="en">Ask LLM</span><span class="vi">Hỏi LLM</span></div><div class="skip"><span class="en">Skip · no model call</span><span class="vi">Bỏ qua · không gọi mô hình</span></div></div>
+  <div class="ticks"><span>0</span><span>0.4</span><span>0.5 → 1</span></div>
+  <ul class="clean col" style="margin-top:16px">
+    <li><span class="en"><strong>The LLM narrows down like a person would.</strong> The fallback classifier first picks the top-level sector, then the specific category inside it, and the tool walks its answers in order until one maps cleanly to a level-2 parent.</span><span class="vi"><strong>LLM thu hẹp dần như một người làm.</strong> Bộ phân loại dự phòng chọn ngành lớn trước, rồi mới chọn danh mục cụ thể bên trong, và công cụ duyệt lần lượt các câu trả lời cho tới khi có một câu quy được về danh mục cha cấp 2.</span></li>
+    <li><span class="en"><strong>The skip band saves the most money.</strong> A name that is far from every category is usually a brand, a vague label or something outside the platform’s range. Not asking the model about it costs nothing and keeps junk out of the tree.</span><span class="vi"><strong>Vùng bỏ qua tiết kiệm nhiều nhất.</strong> Một tên xa mọi danh mục thường là tên thương hiệu, nhãn mơ hồ hoặc thứ nằm ngoài phạm vi của nền tảng. Không hỏi mô hình về nó thì không tốn gì và giữ rác ra khỏi cây.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Results</span><span class="vi">Kết quả</span></span>
+    <h2><span class="en">A 500-name dry run</span><span class="vi">Lần chạy thử 500 tên</span></h2>
+    <p class="en muted">Before changing the tree, the tool wrote its full plan for the first 500 names: which already existed, which would be created under which parent and by which route, and which were skipped. Once the plan had been read and the thresholds held up, the same logic was run in apply mode and created the categories for real.</p>
+    <p class="vi muted">Trước khi thay đổi cây, công cụ ghi ra toàn bộ kế hoạch cho 500 tên đầu tiên: tên nào đã có, tên nào sẽ được tạo dưới danh mục cha nào và theo đường nào, và tên nào bị bỏ qua. Khi kế hoạch đã được đọc lại và các ngưỡng tỏ ra hợp lý, cùng logic đó được chạy ở chế độ áp dụng và tạo danh mục thật.</p>
+  </div>
+  <div class="scale">
+    <div><b>~80%</b><span><span class="en">of new categories placed by embeddings alone (323 of 402)</span><span class="vi">danh mục mới được xếp chỉ bằng embedding (323/402)</span></span></div>
+    <div><b>~20%</b><span><span class="en">placed by the LLM classifier (79)</span><span class="vi">được xếp bởi bộ phân loại LLM (79)</span></span></div>
+    <div><b>~10%</b><span><span class="en">of all names skipped (52 of 500)</span><span class="vi">tổng số tên bị bỏ qua (52/500)</span></span></div>
+    <div><b>~9%</b><span><span class="en">already existed and were left alone (46)</span><span class="vi">đã có sẵn và được giữ nguyên (46)</span></span></div>
+  </div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">Embedding placements were mostly far from the edge: their median distance was about 0.28, well inside the 0.4 limit. That is what lets the cheap route carry most of the work safely.</p>
+    <p class="vi">Các lần xếp bằng embedding phần lớn nằm xa ngưỡng: khoảng cách trung vị khoảng 0,28, nằm sâu trong giới hạn 0,4. Đó là lý do tuyến rẻ có thể gánh phần lớn công việc một cách an toàn.</p>
+  </div>
+  <div class="table-wrap" style="margin-top:18px"><table>
+    <thead><tr><th><span class="en">Name</span><span class="vi">Tên</span></th><th><span class="en">Decision</span><span class="vi">Quyết định</span></th><th><span class="en">Route</span><span class="vi">Đường đi</span></th></tr></thead>
+    <tbody><tr><td class="k">Alaskan King Crab</td><td><span class="en">New level 3 under Seafood &amp; Aquatic Products</span><span class="vi">Cấp 3 mới dưới Seafood &amp; Aquatic Products</span></td><td><span class="en">Embedding, distance 0.21</span><span class="vi">Embedding, khoảng cách 0,21</span></td></tr><tr><td class="k">2-In-1 Laptop</td><td><span class="en">New level 3 under Computer Hardware &amp; Software</span><span class="vi">Cấp 3 mới dưới Computer Hardware &amp; Software</span></td><td><span class="en">LLM classifier</span><span class="vi">Bộ phân loại LLM</span></td></tr><tr><td class="k">1,4-Butanediol</td><td><span class="en">New level 3 under Chemicals</span><span class="vi">Cấp 3 mới dưới Chemicals</span></td><td><span class="en">LLM classifier</span><span class="vi">Bộ phân loại LLM</span></td></tr><tr><td class="k">Albacore Tuna</td><td><span class="en">Already a category, left alone</span><span class="vi">Đã là danh mục, giữ nguyên</span></td><td><span class="en">Name check</span><span class="vi">Kiểm tra tên</span></td></tr><tr><td class="k">A7 Product</td><td><span class="en">Skipped: not a real product name</span><span class="vi">Bỏ qua: không phải tên sản phẩm thật</span></td><td><span class="en">No confident match</span><span class="vi">Không khớp đủ tin cậy</span></td></tr><tr><td class="k">A&amp;W Root Beer</td><td><span class="en">Skipped: a brand, not a category</span><span class="vi">Bỏ qua: tên thương hiệu, không phải danh mục</span></td><td><span class="en">No confident match</span><span class="vi">Không khớp đủ tin cậy</span></td></tr></tbody>
+  </table></div>
+  <div class="col stack" style="margin-top:14px">
+    <p class="en">The skipped list is useful on its own. Most of it is noise that should never become a category, but a few common products in it show where the tree is missing a whole branch, which is a decision for a person rather than for the tool.</p>
+    <p class="vi">Danh sách bị bỏ qua tự nó cũng hữu ích. Phần lớn là nhiễu không bao giờ nên thành danh mục, nhưng vài sản phẩm phổ biến trong đó cho thấy cây đang thiếu cả một nhánh, và đó là quyết định của con người chứ không phải của công cụ.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Decisions and trade-offs</span><span class="vi">Quyết định và đánh đổi</span></span>
+    <h2><span class="en">What I chose, and why</span><span class="vi">Tôi đã chọn gì, và vì sao</span></h2>
+  </div>
+  <div class="decisions">
+    <div class="dec"><h3><span class="en">Cheap route first</span><span class="vi">Tuyến rẻ đi trước</span></h3><p><span class="en">A vector lookup costs a fraction of an LLM call and is deterministic. Using it for the clear majority leaves the model budget for the names that actually need judgment.</span><span class="vi">Một lần tra vector chỉ tốn một phần nhỏ so với một lượt gọi LLM và cho kết quả ổn định. Dùng nó cho phần lớn trường hợp rõ ràng giúp dành ngân sách mô hình cho những tên thật sự cần phán đoán.</span></p></div>
+    <div class="dec"><h3><span class="en">A skip band, not a forced answer</span><span class="vi">Có vùng bỏ qua, không ép phải trả lời</span></h3><p><span class="en">Forcing every name into the tree would add junk categories. Allowing “no match” keeps the tree clean and makes the skipped list a review queue.</span><span class="vi">Ép mọi tên vào cây sẽ thêm danh mục rác. Cho phép “không khớp” giữ cây sạch và biến danh sách bị bỏ qua thành một hàng đợi để xem xét.</span></p></div>
+    <div class="dec"><h3><span class="en">Dry run and apply as two modes</span><span class="vi">Chạy thử và áp dụng là hai chế độ riêng</span></h3><p><span class="en">The same logic runs twice: once to write a readable plan, once to create categories. Names that already exist are skipped, so applying again is safe.</span><span class="vi">Cùng một logic chạy hai lần: một lần để ghi ra kế hoạch đọc được, một lần để tạo danh mục. Tên đã có sẽ được bỏ qua, nên áp dụng lại vẫn an toàn.</span></p></div>
+    <div class="dec"><h3><span class="en">Normalise before anything else</span><span class="vi">Chuẩn hoá trước mọi thứ</span></h3><p><span class="en">Names are title-cased with the same rule the rest of the system uses, then de-duplicated, so case variants never become twin categories.</span><span class="vi">Tên được viết hoa theo đúng quy tắc mà phần còn lại của hệ thống dùng, rồi mới loại trùng, nên các biến thể chữ hoa chữ thường không bao giờ thành hai danh mục sinh đôi.</span></p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <span class="eyebrow"><span class="en">Lessons</span><span class="vi">Bài học</span></span>
+    <h2><span class="en">What I would tell the next person</span><span class="vi">Điều tôi muốn chia sẻ</span></h2>
+  </div>
+  <p class="quote"><span class="en">Let distance decide who does the work: the index for the obvious, the model for the uncertain, and nobody for the rest.</span><span class="vi">Để khoảng cách quyết định ai làm việc: index cho phần hiển nhiên, mô hình cho phần không chắc, và không ai cho phần còn lại.</span></p>
+  <ul class="clean col" style="margin-top:0px">
+    <li><span class="en"><strong>Search where the data is dense.</strong> Matching against the sparse top of a hierarchy throws away the most useful neighbours. Search the dense layer and roll up.</span><span class="vi"><strong>Tìm ở nơi dữ liệu dày.</strong> So khớp với phần đỉnh thưa của một cây phân cấp sẽ bỏ phí những hàng xóm hữu ích nhất. Hãy tìm ở lớp dày rồi quy ngược lên.</span></li>
+    <li><span class="en"><strong>Log the route, not only the answer.</strong> Knowing that 80% came from embeddings and 20% from the model is what makes the thresholds tunable later.</span><span class="vi"><strong>Ghi lại đường đi, không chỉ đáp án.</strong> Biết 80% đến từ embedding và 20% từ mô hình mới giúp chỉnh ngưỡng về sau.</span></li>
+    <li><span class="en"><strong>Make “I don’t know” a valid output.</strong> A tool that may skip produces a cleaner tree and a useful review list.</span><span class="vi"><strong>Biến “tôi không biết” thành đầu ra hợp lệ.</strong> Một công cụ được phép bỏ qua sẽ tạo ra cây sạch hơn và một danh sách xem xét hữu ích.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head col"><span class="eyebrow">Stack</span></div>
+  <div class="chips">
+    <span>Python</span><span>ChromaDB</span><span>OpenAI text-embedding-3-large</span><span><span class="en">cosine distance</span><span class="vi">khoảng cách cosine</span></span><span><span class="en">LLM classifier</span><span class="vi">bộ phân loại LLM</span></span><span><span class="en">dry-run / apply modes</span><span class="vi">chế độ chạy thử / áp dụng</span></span></div>
+</section>
+
+<footer>
+  <div class="contact">
+    <a href="https://www.linkedin.com/in/tuanvinh-24a875396">LinkedIn</a>
+    <a href="https://github.com/VinhTuan-maker">GitHub</a>
+  </div>
+  <span class="en">Case study by Tran Vinh Tuan, AI Engineer. A personal portfolio piece describing my own work; not an official publication. Internal code, prompts, credentials and customer data are not shown, and figures are rounded.</span>
+  <span class="vi">Case study của Trần Vĩnh Tuấn, AI Engineer. Tài liệu portfolio cá nhân mô tả công việc của tôi, không phải ấn phẩm chính thức. Không hiển thị mã nguồn, prompt, thông tin đăng nhập hay dữ liệu khách hàng; số liệu đã được làm tròn.</span>
+</footer>
+</main>
+<script>
+(function(){
+  var b=document.body, en=document.getElementById('btn-en'), vi=document.getElementById('btn-vi');
+  function set(l){
+    b.classList.toggle('lang-vi', l==='vi');
+    document.documentElement.lang = l;
+    en.setAttribute('aria-pressed', l==='en'); vi.setAttribute('aria-pressed', l==='vi');
+    try{localStorage.setItem('cs-lang', l)}catch(e){}
+  }
+  en.addEventListener('click',function(){set('en')});
+  vi.addEventListener('click',function(){set('vi')});
+  var start='vi';
+  if(location.hash==='#vi') start='vi';
+  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'vi' }catch(e){} }
+  set(start);
+})();
+</script>
+</body>
+</html>
