@@ -461,13 +461,13 @@ market position
     b.classList.toggle('lang-vi', l==='vi');
     document.documentElement.lang = l;
     en.setAttribute('aria-pressed', l==='en'); vi.setAttribute('aria-pressed', l==='vi');
-    try{localStorage.setItem('cs-lang', l)}catch(e){}
+    try{localStorage.setItem('cs-lang-v2', l)}catch(e){}
   }
   en.addEventListener('click',function(){set('en')});
   vi.addEventListener('click',function(){set('vi')});
   var start='vi';
   if(location.hash==='#vi') start='vi';
-  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang')||'vi' }catch(e){} }
+  else if(location.hash!=='#en'){ try{ start=localStorage.getItem('cs-lang-v2')||'vi' }catch(e){} }
   set(start);
 })();
 </script>
